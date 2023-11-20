@@ -23,18 +23,4 @@ contract MGDCompanyL2Sync is MintGoldDustCompany {
     isAddressValidator[_address] = _state;
     emit ValidatorAdded(_address, _state);
   }
-
-  /// @dev Overriding to change function visibility.
-  function setValidator(
-    address _address,
-    bool _state
-  )
-    public
-    override
-    onlyOwner
-    isZeroAddress(_address)
-  {
-    isAddressValidator[_address] = _state;
-    emit ValidatorAdded(_address, _state);
-  }
 }
