@@ -156,7 +156,7 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
    * @param mgdCompany address in the indicated domain
    */
   function setCrossDomainMGDCompany(
-    uint32 chainId,
+    uint256 chainId,
     address mgdCompany
   )
     external
