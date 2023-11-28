@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {MGDL2SyncEIP712, ECDSAUpgradeable} from "./MGDL2SyncEIP712.sol";
+import {CrossAction, MGDEIP712L2Sync, ECDSAUpgradeable} from "./MGDEIP712L2Sync.sol";
 import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol";
 
 /// @title MGDCompanyL2Sync
@@ -10,12 +10,7 @@ import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol"
 /// syncs access levels management changes with a L2.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MGDCompanyL2Sync is MGDL2SyncEIP712, MintGoldDustCompany {
-  enum CrossAction {
-    SetValidator,
-    SetWhitelist
-  }
-
+contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
   /**
    * @dev Emit when `setCrossDomainMessenger()` is called.
    * @param messenger address to be set
@@ -42,12 +37,6 @@ contract MGDCompanyL2Sync is MGDL2SyncEIP712, MintGoldDustCompany {
    * @param state change
    */
   event FailedReceiveL1Sync(CrossAction action, address account, bool state);
-
-  bytes32 private constant _SETVALIDATOR_TYPEHASH =
-    keccak256("SetValidator(address account,bool state,uint256 chainId,uint256 deadline)");
-
-  bytes32 private constant _WHITELIST_TYPEHASH =
-    keccak256("Whitelist(address account,bool state,uint256 chainId,uint256 deadline)");
 
   IL1crossDomainMessenger public crossDomainMessenger;
 
