@@ -14,7 +14,20 @@ task("generate", "Create a wallet for builder deploys", async (_, { ethers }) =>
 });
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+  solidity: {
+    version: "0.8.18",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 10000,
+      },
+      outputSelection: {
+        '*': {
+          '*': ['storageLayout'],
+        },
+      },
+    },
+  },
 };
 
 export default config;
