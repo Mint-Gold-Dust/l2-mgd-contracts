@@ -17,4 +17,9 @@ docs/
 node_modules
 
 # Hardhat files
+artifacts
+typechain-types
 cache_hardhat
+
+# Keys
+keys

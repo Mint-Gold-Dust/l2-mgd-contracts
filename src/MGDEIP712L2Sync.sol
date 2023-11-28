@@ -4,9 +4,23 @@ pragma solidity 0.8.18;
 import {ECDSAUpgradeable} from
   "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 
-contract MGDL2SyncEIP712 {
+enum CrossAction {
+  SetValidator,
+  SetWhitelist
+}
+
+contract MGDEIP712L2Sync {
+  /// errors
+  error MGDEIP712L2Sync_getDigestToSign_unknownCrossAction();
+
   bytes32 private constant _TYPE_HASH =
     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+
+  bytes32 internal constant _SETVALIDATOR_TYPEHASH =
+    keccak256("SetValidator(address account,bool state,uint256 chainId,uint256 deadline)");
+
+  bytes32 internal constant _WHITELIST_TYPEHASH =
+    keccak256("Whitelist(address account,bool state,uint256 chainId,uint256 deadline)");
 
   string public constant NAME = "MGDL2SyncEIP712";
   string public constant VERSION = "v0.0.1";
@@ -16,6 +30,30 @@ contract MGDL2SyncEIP712 {
 
   bytes32 private _cachedHashedName;
   bytes32 private _cachedHashedVersion;
+
+  function getDigestToSign(
+    CrossAction action,
+    address account,
+    bool state,
+    uint256 chainId,
+    uint256 deadline
+  )
+    public
+    view
+    returns (bytes32 digest)
+  {
+    if (action == CrossAction.SetValidator) {
+      bytes32 structHash =
+        keccak256(abi.encode(_SETVALIDATOR_TYPEHASH, account, state, chainId, deadline));
+      digest = _hashTypedDataV4(structHash);
+    } else if (action == CrossAction.SetWhitelist) {
+      bytes32 structHash =
+        keccak256(abi.encode(_WHITELIST_TYPEHASH, account, state, chainId, deadline));
+      digest = _hashTypedDataV4(structHash);
+    } else {
+      revert MGDEIP712L2Sync_getDigestToSign_unknownCrossAction();
+    }
+  }
 
   /**
    * @dev Initializes the domain separator and parameter caches.
