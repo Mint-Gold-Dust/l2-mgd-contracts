@@ -155,10 +155,8 @@ contract MGDCompanyTests is Test {
     bytes memory sentCalldata =
       abi.encode(CrossAction.SetValidator, validator, true, deadline, signature);
 
-    bytes memory message = abi.encodeWithSelector(
-      MGDCompanyL2Sync.receiveL1Sync.selector,
-      sentCalldata
-    );
+    bytes memory message =
+      abi.encodeWithSelector(MGDCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
     emit SentMessage(l2Proxy, l1Proxy, message, nonce, 1_000_000);
