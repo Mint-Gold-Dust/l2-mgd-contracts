@@ -186,8 +186,8 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
 
   function _checkDeadline(uint256 deadline, bool withRevert) private {
     if (withRevert) {
-      require(deadline < (block.timestamp + 1 days), "Short deadline");
-    } else if (deadline > (block.timestamp + 1 days)) {
+      require(block.timestamp < deadline, "Expired deadline");
+    } else if (block.timestamp > deadline) {
       emit ExpiredDeadline(deadline);
     }
   }
