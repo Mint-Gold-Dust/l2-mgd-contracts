@@ -51,6 +51,11 @@ contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
     _;
   }
 
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
+
   /**
    * @notice Similar to `setValidator()` with L2 synchronizaton.
    * @param account to set as validator

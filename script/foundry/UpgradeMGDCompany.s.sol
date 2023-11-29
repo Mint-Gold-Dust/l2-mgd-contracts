@@ -11,8 +11,8 @@ import {ITransparentUpgradeableProxy} from
 
 contract UpgradeMGDCompanyL2Sync is Script {
   /// Initialize params
-  address private constant PROXY_ADMIN = 0x5D69C4aC749C9e76f15f566c227FcC1f9DF1592a;
-  address private constant PROXY = 0x54B89630089E9fE3f5138b38a2f84Bb9Ce4F2978;
+  address private constant PROXY_ADMIN = 0x29FAd1fb39Ebd5090b12c3949462A64861DE7C6D;
+  address private constant PROXY = 0xa0e656f94bB38c6941DF92a5F950Dc8A67bb5940;
 
   /// addresses
   address public newImplementation;
