@@ -10,7 +10,7 @@ import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol"
 /// syncs access levels management changes with a L2.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
+contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
   /**
    * @dev Emit when `setCrossDomainMessenger()` is called.
    * @param messenger address to be set
@@ -39,7 +39,7 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
   event FailedReceiveL1Sync(CrossAction action, address account, bool state);
 
   /// Custom errors
-  error MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint chainId);
+  error MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
 
   IL1crossDomainMessenger public crossDomainMessenger;
 
