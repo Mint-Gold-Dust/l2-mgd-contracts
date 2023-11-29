@@ -32,7 +32,7 @@ contract DeployMGDCompanyL2Sync is Script {
   /**
    * @dev Run using shell command:
    * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
-   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast scripts/DeployMGDCompanyL2Sync
+   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/DeployMGDCompanyL2Sync.s.sol
    */
   function run() public {
     vm.startBroadcast();

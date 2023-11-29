@@ -18,7 +18,7 @@ contract WhitelistL2Sync is Script {
   /**
    * @dev Run using shell command:
    * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
-   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast scripts/Whitelist.s.sol
+   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast scripts/WhitelistL2Sync.s.sol
    */
   function run() public {
     vm.startBroadcast();
@@ -38,13 +38,9 @@ contract WhitelistL2Sync is Script {
     require(DEADLINE != 0, "Set `DEADLINE`");
 
     bytes32 digest = MGDL2SYNC.getDigestToSign(
-      CrossAction.SetWhitelist,
-      ADDRESS_TO_WHITELIST,
-      NEW_STATE,
-      TARGET_CHAIN_ID,
-      DEADLINE
+      CrossAction.SetWhitelist, ADDRESS_TO_WHITELIST, NEW_STATE, TARGET_CHAIN_ID, DEADLINE
     );
-    console.log('Digest:');
+    console.log("Digest:");
     console.logBytes32(digest);
 
     uint256 privKey = getPrivKey();
@@ -52,7 +48,7 @@ contract WhitelistL2Sync is Script {
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, digest);
 
     bytes memory signature = abi.encodePacked(r, s, v);
-    console.log('signature:');
+    console.log("signature:");
     console.logBytes(signature);
 
     MGDL2SYNC.whitelistWithL2Sync(

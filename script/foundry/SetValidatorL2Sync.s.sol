@@ -12,6 +12,7 @@ contract SetValidatorL2Sync is Script {
     MGDCompanyL2Sync(0x9ec99f79510fe675c22e537B505c4B3D0e487Dbe);
   uint256 public constant TARGET_CHAIN_ID = 84532;
   address public constant ADDRESS_TO_SET_VALIDATOR = 0x4c56Bb56b27cc3Bb46FA5925dcF34Bf068C4558E;
+  bool public constant NEW_STATE = false;
   uint256 public constant DEADLINE = 1701417600;
 
   /**
@@ -37,13 +38,9 @@ contract SetValidatorL2Sync is Script {
     require(DEADLINE != 0, "Set `DEADLINE`");
 
     bytes32 digest = MGDL2SYNC.getDigestToSign(
-      CrossAction.SetValidator,
-      ADDRESS_TO_SET_VALIDATOR,
-      true,
-      TARGET_CHAIN_ID,
-      DEADLINE
+      CrossAction.SetValidator, ADDRESS_TO_SET_VALIDATOR, NEW_STATE, TARGET_CHAIN_ID, DEADLINE
     );
-    console.log('Digest:');
+    console.log("Digest:");
     console.logBytes32(digest);
 
     uint256 privKey = getPrivKey();
@@ -51,11 +48,11 @@ contract SetValidatorL2Sync is Script {
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, digest);
 
     bytes memory signature = abi.encodePacked(r, s, v);
-    console.log('signature:');
+    console.log("signature:");
     console.logBytes(signature);
 
     MGDL2SYNC.setValidatorWithL2Sync(
-      ADDRESS_TO_SET_VALIDATOR, true, TARGET_CHAIN_ID, DEADLINE, signature
+      ADDRESS_TO_SET_VALIDATOR, NEW_STATE, TARGET_CHAIN_ID, DEADLINE, signature
     );
 
     vm.stopBroadcast();
