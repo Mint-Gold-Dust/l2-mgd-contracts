@@ -38,6 +38,9 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
    */
   event FailedReceiveL1Sync(CrossAction action, address account, bool state);
 
+  /// Custom errors
+  error MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint chainId);
+
   IL1crossDomainMessenger public crossDomainMessenger;
 
   /// chain Id => MGDCompanyL2Sync address
@@ -181,6 +184,9 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
     bytes memory message = abi.encodeWithSelector(
       this.receiveL1Sync.selector, abi.encode(action, account, state, deadline, mgdSignature)
     );
+    if (crossDomainMGDCompany[chainId] == address(0)) {
+      revert MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
+    }
     crossDomainMessenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
   }
 
