@@ -46,7 +46,11 @@ contract WhitelistL2Sync is Script {
     require(privKey != 0, "Set `MGD_SIGNER` in `.env` file");
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(privKey, digest);
 
-    bytes memory signature = abi.encode(v, r, s);
+    bytes memory signature = abi.encodePacked(r, s, v);
+
+    MGDL2SYNC.whitelistWithL2Sync(
+      ADDRESS_TO_WHITELIST, true, TARGET_CHAIN_ID, block.timestamp + 1 days, signature
+    );
 
     vm.stopBroadcast();
   }

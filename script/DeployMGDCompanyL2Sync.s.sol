@@ -19,7 +19,8 @@ contract DeployMGDCompanyL2Sync is Script {
   uint256 private constant _AUCTION_DURATION = 1 days;
   uint256 private constant _AUCTION_EXTENSION = 5 minutes;
 
-  address private constant CROSSDOMAIN_MESSENGER = 0x4200000000000000000000000000000000000007;
+  address private constant L1_CROSSDOMAIN_MESSENGER = 0x866E82a600A1414e583f7F13623F1aC5d58b0Afa;
+  address private constant L2_CROSSDOMAIN_MESSENGER = 0x4200000000000000000000000000000000000007;
 
   /// addresses
   address public implementation;
@@ -63,8 +64,8 @@ contract DeployMGDCompanyL2Sync is Script {
     MGDCompanyL2Sync(proxy).setPublicKey(msg.sender);
     console.log("Called MGDCompanyL2Sync.setPublicKey()", msg.sender);
 
-    MGDCompanyL2Sync(proxy).setCrossDomainMessenger(CROSSDOMAIN_MESSENGER);
-    console.log("Called MGDCompanyL2Sync.setCrossDomainMessenger()", CROSSDOMAIN_MESSENGER);
+    MGDCompanyL2Sync(proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
+    console.log("Called MGDCompanyL2Sync.setCrossDomainMessenger()", L1_CROSSDOMAIN_MESSENGER);
 
     // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(1, proxy); // mainnet
     // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(8453, proxy); // base
