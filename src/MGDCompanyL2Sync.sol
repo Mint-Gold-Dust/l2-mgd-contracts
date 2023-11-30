@@ -10,7 +10,7 @@ import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol"
 /// syncs access levels management changes with a L2.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
+contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
   /**
    * @dev Emit when `setCrossDomainMessenger()` is called.
    * @param messenger address to be set
@@ -38,6 +38,9 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
    */
   event FailedReceiveL1Sync(CrossAction action, address account, bool state);
 
+  /// Custom errors
+  error MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
+
   IL1crossDomainMessenger public crossDomainMessenger;
 
   /// chain Id => MGDCompanyL2Sync address
@@ -46,6 +49,11 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
   modifier onlyCrossMessenger() {
     require(msg.sender == address(crossDomainMessenger));
     _;
+  }
+
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
   }
 
   /**
@@ -156,7 +164,7 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
    * @param mgdCompany address in the indicated domain
    */
   function setCrossDomainMGDCompany(
-    uint32 chainId,
+    uint256 chainId,
     address mgdCompany
   )
     external
@@ -181,13 +189,16 @@ contract MGDCompanyL2Sync is MGDEIP712L2Sync, MintGoldDustCompany {
     bytes memory message = abi.encodeWithSelector(
       this.receiveL1Sync.selector, abi.encode(action, account, state, deadline, mgdSignature)
     );
+    if (crossDomainMGDCompany[chainId] == address(0)) {
+      revert MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
+    }
     crossDomainMessenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
   }
 
   function _checkDeadline(uint256 deadline, bool withRevert) private {
     if (withRevert) {
-      require(deadline < (block.timestamp + 1 days), "Short deadline");
-    } else if (deadline > (block.timestamp + 1 days)) {
+      require(block.timestamp < deadline, "Expired deadline");
+    } else if (block.timestamp > deadline) {
       emit ExpiredDeadline(deadline);
     }
   }
