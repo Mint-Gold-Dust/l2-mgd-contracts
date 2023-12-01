@@ -6,7 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {VmSafe} from "forge-std/StdUtils.sol";
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {MGDCompanyL2Sync, CrossAction} from "../../src/MGDCompanyL2Sync.sol";
+import {MgdCompanyL2Sync, CrossAction} from "../../src/MgdCompanyL2Sync.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
@@ -53,7 +53,7 @@ contract MGDCompanyTests is Test {
     _OWNER = Alice.addr;
 
     vm.startPrank(Alice.addr);
-    implementation = address(new MGDCompanyL2Sync());
+    implementation = address(new MgdCompanyL2Sync());
     proxyAdmin = address(new ProxyAdmin());
 
     bytes memory data = abi.encodeWithSelector(
@@ -70,17 +70,17 @@ contract MGDCompanyTests is Test {
     l1Proxy = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
     l2Proxy = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
 
-    MGDCompanyL2Sync(l1Proxy).setPublicKey(MGDSigner.addr);
-    MGDCompanyL2Sync(l2Proxy).setPublicKey(MGDSigner.addr);
+    MgdCompanyL2Sync(l1Proxy).setPublicKey(MGDSigner.addr);
+    MgdCompanyL2Sync(l2Proxy).setPublicKey(MGDSigner.addr);
 
-    MGDCompanyL2Sync(l1Proxy).setValidator(Bob.addr, true);
-    MGDCompanyL2Sync(l2Proxy).setValidator(Bob.addr, true);
+    MgdCompanyL2Sync(l1Proxy).setValidator(Bob.addr, true);
+    MgdCompanyL2Sync(l2Proxy).setValidator(Bob.addr, true);
 
-    MGDCompanyL2Sync(l1Proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
-    MGDCompanyL2Sync(l1Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2Proxy); // localhost
+    MgdCompanyL2Sync(l1Proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l1Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2Proxy); // localhost
 
-    MGDCompanyL2Sync(l2Proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
-    MGDCompanyL2Sync(l2Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1Proxy); // localhost
+    MgdCompanyL2Sync(l2Proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l2Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1Proxy); // localhost
 
     deployCodeTo("MockCrossDomainMessenger.sol", L1_CROSSDOMAIN_MESSENGER);
 
@@ -108,13 +108,13 @@ contract MGDCompanyTests is Test {
 
     vm.expectRevert(MintGoldDustCompany.Unauthorized.selector);
     vm.prank(foe);
-    MGDCompanyL2Sync(l1Proxy).whitelistWithL2Sync(
+    MgdCompanyL2Sync(l1Proxy).whitelistWithL2Sync(
       Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
     );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(foe);
-    MGDCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
+    MgdCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
       Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
     );
   }
@@ -130,18 +130,18 @@ contract MGDCompanyTests is Test {
       abi.encode(CrossAction.SetWhitelist, artist, true, deadline, signature);
 
     bytes memory message =
-      abi.encodeWithSelector(MGDCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
+      abi.encodeWithSelector(MgdCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
     emit SentMessage(l2Proxy, l1Proxy, message, nonce, 1_000_000);
     vm.prank(Bob.addr);
-    MGDCompanyL2Sync(l1Proxy).whitelistWithL2Sync(artist, true, _TEST_CHAIN_ID, deadline, signature);
+    MgdCompanyL2Sync(l1Proxy).whitelistWithL2Sync(artist, true, _TEST_CHAIN_ID, deadline, signature);
 
-    assertEq(MGDCompanyL2Sync(l1Proxy).isArtistApproved(artist), true);
+    assertEq(MgdCompanyL2Sync(l1Proxy).isArtistApproved(artist), true);
 
     _receiveCrossAction(sentCalldata);
 
-    assertEq(MGDCompanyL2Sync(l2Proxy).isArtistApproved(artist), true);
+    assertEq(MgdCompanyL2Sync(l2Proxy).isArtistApproved(artist), true);
   }
 
   function test_setValidator(address validator) public {
@@ -156,23 +156,23 @@ contract MGDCompanyTests is Test {
       abi.encode(CrossAction.SetValidator, validator, true, deadline, signature);
 
     bytes memory message =
-      abi.encodeWithSelector(MGDCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
+      abi.encodeWithSelector(MgdCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
     emit SentMessage(l2Proxy, l1Proxy, message, nonce, 1_000_000);
     vm.prank(Alice.addr);
-    MGDCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
+    MgdCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
       validator, true, _TEST_CHAIN_ID, deadline, signature
     );
 
-    assertEq(MGDCompanyL2Sync(l1Proxy).isAddressValidator(validator), true);
+    assertEq(MgdCompanyL2Sync(l1Proxy).isAddressValidator(validator), true);
     _receiveCrossAction(sentCalldata);
-    assertEq(MGDCompanyL2Sync(l2Proxy).isAddressValidator(validator), true);
+    assertEq(MgdCompanyL2Sync(l2Proxy).isAddressValidator(validator), true);
   }
 
   function _receiveCrossAction(bytes memory data) public {
     vm.startPrank(L2_CROSSDOMAIN_MESSENGER);
-    MGDCompanyL2Sync(l2Proxy).receiveL1Sync(data);
+    MgdCompanyL2Sync(l2Proxy).receiveL1Sync(data);
   }
 
   function generate_signature(
@@ -188,7 +188,7 @@ contract MGDCompanyTests is Test {
     returns (bytes memory signature)
   {
     bytes32 digest =
-      MGDCompanyL2Sync(l1Proxy).getDigestToSign(action, account, state, chainId, deadline);
+      MgdCompanyL2Sync(l1Proxy).getDigestToSign(action, account, state, chainId, deadline);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivKey, digest);
     return abi.encodePacked(r, s, v);

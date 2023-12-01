@@ -9,9 +9,9 @@ enum CrossAction {
   SetWhitelist
 }
 
-contract MGDEIP712L2Sync {
+contract MgdEIP712L2Sync {
   /// errors
-  error MGDEIP712L2Sync_getDigestToSign_unknownCrossAction();
+  error MgdEIP712L2Sync_getDigestToSign_unknownCrossAction();
 
   bytes32 private constant _TYPE_HASH =
     keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
@@ -51,7 +51,7 @@ contract MGDEIP712L2Sync {
         keccak256(abi.encode(_WHITELIST_TYPEHASH, account, state, chainId, deadline));
       digest = _hashTypedDataV4(structHash);
     } else {
-      revert MGDEIP712L2Sync_getDigestToSign_unknownCrossAction();
+      revert MgdEIP712L2Sync_getDigestToSign_unknownCrossAction();
     }
   }
 
