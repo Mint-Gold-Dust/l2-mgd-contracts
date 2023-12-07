@@ -1,26 +1,58 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-// import "./IERC1155Upgradeable.sol"; // TODO remove
 import {IERC1155ReceiverUpgradeable} from
   "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
-// import "./extensions/IERC1155MetadataURIUpgradeable.sol"; // TODO remove
-import {IERC1155ReceiverUpgradeable} from
-  "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/ContextUpgradeable.sol";
-import {ERC165Upgradeable} from
-  "@openzeppelin/contracts-upgradeable//utils/introspection/ERC165Upgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable//proxy/utils/Initializable.sol";
 
 /// @title Almost1155Upgradeable
 /// @notice A replicate of OpenZeppelin's ERC1155 implementation removing
 /// all URI methods but keeping all other intended functionality.
-/// This contract is not intended to comply to ERC1155 standard.
+/// NOTE: This contract is NOT intended to comply to the ERC1155 standard.
 /// @author Mint Gold Dust LLC
 /// @dev Refer to: OpenZeppelin Contracts (last updated v4.9.0) (token/ERC1155/ERC1155.sol)
 /// @custom:contact klvh@mintgolddust.io
-contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeable {
+contract Almost1155Upgradeable is ContextUpgradeable {
+  /// Custom Errors
+  error Almost1155Upgradeable__isZeroAddress_notAllowed();
+
   using AddressUpgradeable for address;
+  /**
+   * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.
+   */
+
+  event TransferSingle(
+    address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value
+  );
+
+  /**
+   * @dev Equivalent to multiple {TransferSingle} events, where `operator`, `from` and `to` are the same for all
+   * transfers.
+   */
+  event TransferBatch(
+    address indexed operator,
+    address indexed from,
+    address indexed to,
+    uint256[] ids,
+    uint256[] values
+  );
+
+  /**
+   * @dev Emitted when `account` grants or revokes permission to `operator` to transfer their tokens, according to
+   * `approved`.
+   */
+  event ApprovalForAll(address indexed account, address indexed operator, bool approved);
+
+  /**
+   * @dev Emitted when the URI for token type `id` changes to `value`, if it is a non-programmatic URI.
+   *
+   * If an {URI} event was emitted for `id`, the standard
+   * https://eips.ethereum.org/EIPS/eip-1155#metadata-extensions[guarantees] that `value` will equal the value
+   * returned by {IERC1155MetadataURI-uri}.
+   */
+  // TODO remove
+  // event URI(string value, uint256 indexed id);
 
   // Mapping from token ID to account balances
   mapping(uint256 => mapping(address => uint256)) private _balances;
@@ -28,51 +60,13 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
   // Mapping from account to operator approvals
   mapping(address => mapping(address => bool)) private _operatorApprovals;
 
-  // Used as the URI for all token types by relying on ID substitution, e.g. https://token-cdn-domain/{id}.json
-  // string private _uri;
-
-  /**
-   * @dev See {_setURI}.
-   */
-  // TODO remove
-  // function __ERC1155_init(string memory uri_) internal onlyInitializing {
-  //     __ERC1155_init_unchained(uri_);
-  // }
-
-  // function __ERC1155_init_unchained(string memory uri_) internal onlyInitializing {
-  //     _setURI(uri_);
-  // }
-
-  /**
-   * @dev See {IERC165-supportsInterface}.
-   */
-  function supportsInterface(bytes4 interfaceId)
-    public
-    view
-    virtual
-    override(ERC165Upgradeable, IERC165Upgradeable)
-    returns (bool)
-  {
-    return super
-      // interfaceId == type(IERC1155Upgradeable).interfaceId || TODO remove
-      // interfaceId == type(IERC1155MetadataURIUpgradeable).interfaceId ||
-      .supportsInterface(interfaceId);
+  /// @notice Checks that `address_` is not zero
+  modifier isZeroAddress(address address_) {
+    if (address_ != address(0)) {
+      revert Almost1155Upgradeable__isZeroAddress_notAllowed();
+    }
+    _;
   }
-
-  /**
-   * @dev See {IERC1155MetadataURI-uri}.
-   *
-   * This implementation returns the same URI for *all* token types. It relies
-   * on the token type ID substitution mechanism
-   * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
-   *
-   * Clients calling this function must replace the `\{id\}` substring with the
-   * actual token type ID.
-   */
-  // TODO remove
-  // function uri(uint256) public view virtual override returns (string memory) {
-  //     return _uri;
-  // }
 
   /**
    * @dev See {IERC1155-balanceOf}.
@@ -81,7 +75,7 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
    *
    * - `account` cannot be the zero address.
    */
-  function balanceOf(address account, uint256 id) public view virtual override returns (uint256) {
+  function balanceOf(address account, uint256 id) public view virtual returns (uint256) {
     require(account != address(0), "ERC1155: address zero is not a valid owner");
     return _balances[id][account];
   }
@@ -100,7 +94,6 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
     public
     view
     virtual
-    override
     returns (uint256[] memory)
   {
     require(accounts.length == ids.length, "ERC1155: accounts and ids length mismatch");
@@ -117,23 +110,14 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
   /**
    * @dev See {IERC1155-setApprovalForAll}.
    */
-  function setApprovalForAll(address operator, bool approved) public virtual override {
+  function setApprovalForAll(address operator, bool approved) public virtual {
     _setApprovalForAll(_msgSender(), operator, approved);
   }
 
   /**
    * @dev See {IERC1155-isApprovedForAll}.
    */
-  function isApprovedForAll(
-    address account,
-    address operator
-  )
-    public
-    view
-    virtual
-    override
-    returns (bool)
-  {
+  function isApprovedForAll(address account, address operator) public view virtual returns (bool) {
     return _operatorApprovals[account][operator];
   }
 
@@ -149,7 +133,6 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
   )
     public
     virtual
-    override
   {
     require(
       from == _msgSender() || isApprovedForAll(from, _msgSender()),
@@ -170,7 +153,6 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
   )
     public
     virtual
-    override
   {
     require(
       from == _msgSender() || isApprovedForAll(from, _msgSender()),
@@ -268,30 +250,6 @@ contract Almost1155Upgradeable is Initializable, ContextUpgradeable, ERC165Upgra
 
     _doSafeBatchTransferAcceptanceCheck(operator, from, to, ids, amounts, data);
   }
-
-  /**
-   * @dev Sets a new URI for all token types, by relying on the token type ID
-   * substitution mechanism
-   * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
-   *
-   * By this mechanism, any occurrence of the `\{id\}` substring in either the
-   * URI or any of the amounts in the JSON file at said URI will be replaced by
-   * clients with the token type ID.
-   *
-   * For example, the `https://token-cdn-domain/\{id\}.json` URI would be
-   * interpreted by clients as
-   * `https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json`
-   * for token type ID 0x4cce0.
-   *
-   * See {uri}.
-   *
-   * Because these URIs cannot be meaningfully represented by the {URI} event,
-   * this function emits no events.
-   */
-  // TODO Remove
-  // function _setURI(string memory newuri) internal virtual {
-  //     _uri = newuri;
-  // }
 
   /**
    * @dev Creates `amount` tokens of token type `id`, and assigns them to `to`.
