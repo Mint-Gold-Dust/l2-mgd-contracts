@@ -7,7 +7,7 @@ import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Addr
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/ContextUpgradeable.sol";
 
 /// @title Almost1155Upgradeable
-/// @notice A replicate of OpenZeppelin's ERC1155 implementation removing
+/// @notice A close replicate of OpenZeppelin's ERC1155 implementation removing
 /// all URI methods but keeping all other intended functionality.
 /// NOTE: This contract is NOT intended to comply to the ERC1155 standard.
 /// @author Mint Gold Dust LLC
@@ -15,7 +15,8 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/Con
 /// @custom:contact klvh@mintgolddust.io
 contract Almost1155Upgradeable is ContextUpgradeable {
   /// Custom Errors
-  error Almost1155Upgradeable__isZeroAddress_notAllowed();
+  error Almost1155Upgradeable__checkZeroAddress_notAllowed();
+  error Almost1155Upgradeable__checkGtZero_notZero();
 
   using AddressUpgradeable for address;
   /**
@@ -60,13 +61,12 @@ contract Almost1155Upgradeable is ContextUpgradeable {
   // Mapping from account to operator approvals
   mapping(address => mapping(address => bool)) private _operatorApprovals;
 
-  /// @notice Checks that `address_` is not zero
-  modifier isZeroAddress(address address_) {
-    if (address_ != address(0)) {
-      revert Almost1155Upgradeable__isZeroAddress_notAllowed();
-    }
-    _;
-  }
+  /**
+   * @dev This empty reserved space is put in place to allow future versions to add new
+   * variables without shifting down storage in the inheritance chain.
+   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+   */
+  uint256[50] private __gap;
 
   /**
    * @dev See {IERC1155-balanceOf}.
@@ -517,10 +517,17 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     return array;
   }
 
-  /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
-   * variables without shifting down storage in the inheritance chain.
-   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-   */
-  uint256[47] private __gap;
+  /// @notice Checks that `addr` is not zero
+  function _checkZeroAddress(address addr) internal pure {
+    if (addr == address(0)) {
+      revert Almost1155Upgradeable__checkZeroAddress_notAllowed();
+    }
+  }
+
+  /// @notice Checks that unsigned `input` is greater than zero
+  function _checkGtZero(uint256 input) internal pure {
+    if (input == 0) {
+      revert Almost1155Upgradeable__checkGtZero_notZero();
+    }
+  }
 }
