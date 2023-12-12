@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
 import {CrossAction, MgdEIP712L2Sync, ECDSAUpgradeable} from "./MgdEIP712L2Sync.sol";
-import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol";
+import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 
 /// @title MgdCompanyL2Sync
 /// @notice An extension to {MintGoldDustCompany} containing functions that
@@ -41,7 +41,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
   /// Custom errors
   error MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
 
-  IL1crossDomainMessenger public crossDomainMessenger;
+  ICrossDomainMessenger public crossDomainMessenger;
 
   /// chain Id => MgdCompanyL2Sync address
   mapping(uint256 => address) public crossDomainMGDCompany;
@@ -153,7 +153,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
    * @param messenger canonical address between L1 or L2
    */
   function setCrossDomainMessenger(address messenger) external onlyOwner isZeroAddress(messenger) {
-    crossDomainMessenger = IL1crossDomainMessenger(messenger);
+    crossDomainMessenger = ICrossDomainMessenger(messenger);
     emit SetCrossDomainMessenger(messenger);
   }
 

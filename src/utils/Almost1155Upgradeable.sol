@@ -9,7 +9,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/Con
 /// @title Almost1155Upgradeable
 /// @notice A close replicate of OpenZeppelin's ERC1155 implementation removing
 /// all URI methods but keeping all other intended functionality.
-/// NOTE: This contract is NOT intended to comply to the ERC1155 standard.
+/// NOTE: This contract is NOT intended to comply with the ERC1155 standard.
 /// @author Mint Gold Dust LLC
 /// @dev Refer to: OpenZeppelin Contracts (last updated v4.9.0) (token/ERC1155/ERC1155.sol)
 /// @custom:contact klvh@mintgolddust.io
