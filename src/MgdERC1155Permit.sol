@@ -6,6 +6,7 @@ import {MgdCompanyL2Sync, ICrossDomainMessenger} from "./MgdCompanyL2Sync.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {MgdL1NFTData} from "./MgdL2NFT.sol";
 
 /**
  * @title MgdERC1155Permit
@@ -20,6 +21,13 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
  */
 contract MgdERC1155Permit is MintGoldDustERC1155 {
   // Events
+  /**
+   * @dev Emit when `escrow` address is set.
+   */
+  event SetEscrow(address esccrow_);
+  /**
+   * @dev Emit when `allowance` is set.
+   */
   event SetAllowance(
     address indexed owner, address indexed spender, uint256 indexed id, uint256 amount
   );
@@ -46,11 +54,32 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
   // keccak256(abi.encodePacked(owner,spender,tokenId)) => amount
   mapping(bytes32 => uint256) internal _allowance;
 
+  address public escrow;
+
   /**
    * @dev This empty reserved space is put in place to allow future versions to add new
    * variables without shifting down storage in the inheritance chain.
    */
   uint256[50] private ___gap;
+
+  /// @dev Overriden from {MintGoldDustERC1155} to include token data if sending to `escrow`.
+  function transfer(
+    address from,
+    address to,
+    uint256 tokenId,
+    uint256 amount
+  )
+    public
+    virtual
+    override
+    nonReentrant
+  {
+    bytes memory data;
+    if (escrow != address(0) && to == escrow) {
+      data = _getTokenIdData(tokenId);
+    }
+    safeTransferFrom(from, to, tokenId, amount, data);
+  }
 
   function getAllowance(
     address owner,
@@ -171,6 +200,11 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
     _safeTransferFrom(from, to, id, amount, data);
   }
 
+  function setEscrow(address escrow_) external isZeroAddress(escrow_) isowner {
+    escrow = escrow_;
+    emit SetEscrow(escrow_);
+  }
+
   function PERMIT_TYPEHASH() external pure returns (bytes32) {
     return _PERMIT_TYPEHASH;
   }
@@ -265,5 +299,25 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
     returns (bytes32)
   {
     return keccak256(abi.encodePacked(owner, spender, tokenId));
+  }
+
+  function _getTokenIdData(uint256 tokenId) internal view virtual returns (bytes memory data) {
+    data = abi.encode(
+      MgdL1NFTData({
+        artist: tokenIdArtist[tokenId],
+        hasTokenCollabs: hasTokenCollaborators[tokenId],
+        tokenWasSold: tokenWasSold[tokenId],
+        tokenIdCollabsQuantity: _convertUint256ToUint40(tokenIdCollaboratorsQuantity[tokenId]),
+        primarySaleQuantityToSold: _convertUint256ToUint40(primarySaleQuantityToSold[tokenId]),
+        tokenIdRoyaltyPercent: tokenIdRoyaltyPercent[tokenId],
+        collabs: tokenCollaborators[tokenId],
+        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
+      })
+    );
+  }
+
+  function _convertUint256ToUint40(uint256 value) private pure returns (uint40) {
+    uint40 result = uint40(value);
+    return result;
   }
 }

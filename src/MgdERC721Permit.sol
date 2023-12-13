@@ -61,8 +61,8 @@ contract MgdERC721Permit is MintGoldDustERC721 {
     uint256
   )
     public
-    override
     virtual
+    override
     nonReentrant
   {
     bytes memory data;
