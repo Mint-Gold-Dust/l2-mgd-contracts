@@ -60,8 +60,9 @@ contract MgdERC721Permit is MintGoldDustERC721 {
     uint256 tokenId,
     uint256
   )
-    external
+    public
     override
+    virtual
     nonReentrant
   {
     bytes memory data;
@@ -128,6 +129,11 @@ contract MgdERC721Permit is MintGoldDustERC721 {
       bytes32 r,
       bytes32 s
     ) = abi.decode(params, (address, address, uint256, uint256, uint256, uint8, bytes32, bytes32));
+    {
+      // push to stack to silence unused
+      unused1;
+      unused2;
+    }
     permit(spender, tokenId, deadline, v, r, s);
   }
 
@@ -139,7 +145,7 @@ contract MgdERC721Permit is MintGoldDustERC721 {
   /**
    * @notice The permit typehash used in the permit signature
    */
-  function PERMIT_TYPEHASH() public view returns (bytes32) {
+  function PERMIT_TYPEHASH() public pure returns (bytes32) {
     return _PERMIT_TYPEHASH;
   }
 

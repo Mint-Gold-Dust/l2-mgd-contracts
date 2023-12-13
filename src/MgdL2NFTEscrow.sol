@@ -22,6 +22,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     address indexed nftcontract,
     uint256 indexed tokenId,
     uint256 amount,
+    address owner,
     bytes32 blockHash,
     MgdL1NFTData tokenData,
     uint256 indexed identifier
@@ -30,9 +31,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     address indexed nftcontract, uint256 indexed tokenId, uint256 indexed identifier, uint256 amount
   );
 
-  // bytes4 private constant
-  //     _IERC1155_ONRECEIVED = bytes4(keccak256("onERC1155Received(address,address,uint256,uint256,bytes)"));
-  bytes4 private constant _IERC1155_ONRECEIVED = 0xf23a6e61;
+  bytes4 private constant _EMPTY_BYTES4 = 0x00000000;
 
   ICrossDomainMessenger public crossDomainMessenger;
   address public mgdL2Voucher;
@@ -73,7 +72,6 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     bytes calldata signature
   )
     external
-    returns (uint256 voucherId)
   {
     (uint8 v, bytes32 r, bytes32 s) = _getSignatureValues(signature);
     IEscrowableNFT(nft).permit(abi.encode(owner, address(this), tokenId, amount, deadline, v, r, s));
@@ -89,7 +87,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   }
 
   function onERC721Received(
-    address operator,
+    address, // operator
     address from,
     uint256 tokenId,
     bytes calldata data
@@ -102,16 +100,19 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     MgdL1NFTData memory tokenData = abi.decode(data, (MgdL1NFTData));
     if (nft.ownerOf(tokenId) == address(this)) {
       (uint256 identifier, bytes32 blockHash) =
-        _generateUniqueIdentifier(from, address(nft), tokenId, 1, tokenData);
+        _generateUniqueIdentifier(address(nft), tokenId, 1, from, tokenData);
 
       _sendEscrowNoticeToL2(identifier);
 
-      emit EnterEscrow(address(nft), tokenId, 1, blockHash, tokenData, identifier);
+      emit EnterEscrow(address(nft), tokenId, 1, from, blockHash, tokenData, identifier);
+      return this.onERC721Received.selector;
+    } else {
+      return _EMPTY_BYTES4;
     }
   }
 
   function onERC1155Received(
-    address operator,
+    address, // operator
     address from,
     uint256 tokenId,
     uint256 amount,
@@ -130,17 +131,19 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
      */
     if (nft.balanceOf(address(this), tokenId) >= amount) {
       (uint256 identifier, bytes32 blockHash) =
-        _generateUniqueIdentifier(from, address(nft), tokenId, amount, tokenData);
+        _generateUniqueIdentifier(address(nft), tokenId, amount, from, tokenData);
 
       _sendEscrowNoticeToL2(identifier);
 
-      emit EnterEscrow(address(nft), tokenId, amount, blockHash, tokenData, identifier);
-      return _IERC1155_ONRECEIVED;
+      emit EnterEscrow(address(nft), tokenId, amount, from, blockHash, tokenData, identifier);
+      return this.onERC1155Received.selector;
+    } else {
+      return _EMPTY_BYTES4;
     }
   }
 
   function onERC1155BatchReceived(
-    address operator,
+    address, // operator
     address from,
     uint256[] calldata ids,
     uint256[] calldata values,
@@ -160,16 +163,18 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
        */
       if (nft.balanceOf(address(this), ids[i]) >= values[i]) {
         (uint256 identifier, bytes32 blockHash) =
-          _generateUniqueIdentifier(from, address(nft), ids[i], values[i], datas[i]);
+          _generateUniqueIdentifier(address(nft), ids[i], values[i], from, datas[i]);
 
         _sendEscrowNoticeToL2(identifier);
 
-        emit EnterEscrow(address(nft), ids[i], values[i], blockHash, datas[i], identifier);
+        emit EnterEscrow(address(nft), ids[i], values[i], from, blockHash, datas[i], identifier);
         counted++;
       }
     }
     if (counted == len) {
-      return _IERC1155_ONRECEIVED;
+      return this.onERC1155Received.selector;
+    } else {
+      return _EMPTY_BYTES4;
     }
   }
 
@@ -198,10 +203,10 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   }
 
   function _generateUniqueIdentifier(
-    address owner,
     address nft,
     uint256 tokenId,
     uint256 amount,
+    address owner,
     MgdL1NFTData memory tokenData
   )
     internal
@@ -209,7 +214,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     returns (uint256 identifier, bytes32 blockHash)
   {
     blockHash = blockhash(block.number);
-    identifier = uint256(keccak256(abi.encode(nft, tokenId, amount, blockHash, tokenData)));
+    identifier = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, tokenData)));
   }
 
   function _checkDataNonZero(bytes memory data) internal pure virtual {
