@@ -60,7 +60,7 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
    * @dev This empty reserved space is put in place to allow future versions to add new
    * variables without shifting down storage in the inheritance chain.
    */
-  uint256[50] private ___gap;
+  uint256[50] private __gap;
 
   /// @dev Overriden from {MintGoldDustERC1155} to include token data if sending to `escrow`.
   function transfer(
@@ -76,7 +76,7 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
   {
     bytes memory data;
     if (escrow != address(0) && to == escrow) {
-      data = _getTokenIdData(tokenId);
+      data = _getTokenIdData(tokenId, amount);
     }
     safeTransferFrom(from, to, tokenId, amount, data);
   }
@@ -301,23 +301,28 @@ contract MgdERC1155Permit is MintGoldDustERC1155 {
     return keccak256(abi.encodePacked(owner, spender, tokenId));
   }
 
-  function _getTokenIdData(uint256 tokenId) internal view virtual returns (bytes memory data) {
+  function _getTokenIdData(
+    uint256 tokenId,
+    uint256 amount
+  )
+    internal
+    view
+    virtual
+    returns (bytes memory data)
+  {
+    // TODO safe number casting
     data = abi.encode(
       MgdL1NFTData({
         artist: tokenIdArtist[tokenId],
-        hasTokenCollabs: hasTokenCollaborators[tokenId],
+        hasCollabs: hasTokenCollaborators[tokenId],
         tokenWasSold: tokenWasSold[tokenId],
-        tokenIdCollabsQuantity: _convertUint256ToUint40(tokenIdCollaboratorsQuantity[tokenId]),
-        primarySaleQuantityToSold: _convertUint256ToUint40(primarySaleQuantityToSold[tokenId]),
-        tokenIdRoyaltyPercent: tokenIdRoyaltyPercent[tokenId],
+        collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
+        primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
+        representedAmount: uint128(amount),
+        royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
       })
     );
-  }
-
-  function _convertUint256ToUint40(uint256 value) private pure returns (uint40) {
-    uint40 result = uint40(value);
-    return result;
   }
 }

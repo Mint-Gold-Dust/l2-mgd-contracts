@@ -51,7 +51,7 @@ contract MgdERC721Permit is MintGoldDustERC721 {
    * @dev This empty reserved space is put in place to allow future versions to add new
    * variables without shifting down storage in the inheritance chain.
    */
-  uint256[50] private ___gap;
+  uint256[50] private __gap;
 
   /// @dev Overriden from {MintGoldDustERC721} to include token data if sending to `escrow`.
   function transfer(
@@ -193,22 +193,19 @@ contract MgdERC721Permit is MintGoldDustERC721 {
   }
 
   function _getTokenIdData(uint256 tokenId) internal view virtual returns (bytes memory data) {
+    // TODO safe number casting
     data = abi.encode(
       MgdL1NFTData({
         artist: tokenIdArtist[tokenId],
-        hasTokenCollabs: hasTokenCollaborators[tokenId],
+        hasCollabs: hasTokenCollaborators[tokenId],
         tokenWasSold: tokenWasSold[tokenId],
-        tokenIdCollabsQuantity: _convertUint256ToUint40(tokenIdCollaboratorsQuantity[tokenId]),
-        primarySaleQuantityToSold: _convertUint256ToUint40(primarySaleQuantityToSold[tokenId]),
-        tokenIdRoyaltyPercent: tokenIdRoyaltyPercent[tokenId],
+        collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
+        primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
+        representedAmount: 1,
+        royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
       })
     );
-  }
-
-  function _convertUint256ToUint40(uint256 value) private pure returns (uint40) {
-    uint40 result = uint40(value);
-    return result;
   }
 }
