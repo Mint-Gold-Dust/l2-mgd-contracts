@@ -2,7 +2,7 @@
 pragma solidity 0.8.18;
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {CrossAction, MgdEIP712L2Sync, ECDSAUpgradeable} from "./MgdEIP712L2Sync.sol";
+import {MgdEIP712L2Sync, CrossAction, ECDSAUpgradeable} from "./utils/MgdEIP712L2Sync.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 
 /// @title MgdCompanyL2Sync

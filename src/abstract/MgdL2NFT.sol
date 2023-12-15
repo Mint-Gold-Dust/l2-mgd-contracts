@@ -6,7 +6,7 @@ import {ReentrancyGuardUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {MgdCompanyL2Sync} from "./MgdCompanyL2Sync.sol";
+import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
 
 struct MgdL1NFTData {
   address artist;

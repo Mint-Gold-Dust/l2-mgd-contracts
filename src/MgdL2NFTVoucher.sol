@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import {Almost721Upgradeable} from "./utils/Almost721Upgradeable.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
-import {MgdL2NFT, MgdL1NFTData} from "./MgdL2NFT.sol";
+import {MgdL2NFT, MgdL1NFTData} from "./abstract/MgdL2NFT.sol";
 
 /// @title MgdL2NFTVoucher
 /// @notice This contract "Vouchers" are a representation of an NFT on ethereum mainnet.
@@ -25,11 +25,11 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2NFT {
   mapping(uint256 => bool) public mintCleared;
 
   ICrossDomainMessenger public messenger;
-  address public escrow;
+  address public escrowL1;
 
   modifier onlyCrossAuthorized() {
     if (
-      msg.sender != address(messenger) || messenger.xDomainMessageSender() != escrow
+      msg.sender != address(messenger) || messenger.xDomainMessageSender() != escrowL1
         || msg.sender != address(_mgdCompany)
     ) {
       revert MgdL2NFTVoucher__onlyCrossAuthorized_notAllowed();
@@ -147,7 +147,7 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2NFT {
 
   function _setEscrow(address newEscrow) internal {
     _checkZeroAddress(newEscrow);
-    escrow = newEscrow;
+    escrowL1= newEscrow;
     emit SetEscrow(newEscrow);
   }
 
