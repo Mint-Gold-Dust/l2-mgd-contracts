@@ -2,15 +2,15 @@
 pragma solidity 0.8.18;
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {CrossAction, MGDEIP712L2Sync, ECDSAUpgradeable} from "./MGDEIP712L2Sync.sol";
-import {IL1crossDomainMessenger} from "./interfaces/IL1CrossDomainMessenger.sol";
+import {MgdEIP712L2Sync, CrossAction, ECDSAUpgradeable} from "./utils/MgdEIP712L2Sync.sol";
+import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 
-/// @title MGDCompanyL2Sync
+/// @title MgdCompanyL2Sync
 /// @notice An extension to {MintGoldDustCompany} containing functions that
 /// syncs access levels management changes with a L2.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
+contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
   /**
    * @dev Emit when `setCrossDomainMessenger()` is called.
    * @param messenger address to be set
@@ -39,11 +39,11 @@ contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
   event FailedReceiveL1Sync(CrossAction action, address account, bool state);
 
   /// Custom errors
-  error MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
+  error MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
 
-  IL1crossDomainMessenger public crossDomainMessenger;
+  ICrossDomainMessenger public crossDomainMessenger;
 
-  /// chain Id => MGDCompanyL2Sync address
+  /// chain Id => MgdCompanyL2Sync address
   mapping(uint256 => address) public crossDomainMGDCompany;
 
   modifier onlyCrossMessenger() {
@@ -153,7 +153,7 @@ contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
    * @param messenger canonical address between L1 or L2
    */
   function setCrossDomainMessenger(address messenger) external onlyOwner isZeroAddress(messenger) {
-    crossDomainMessenger = IL1crossDomainMessenger(messenger);
+    crossDomainMessenger = ICrossDomainMessenger(messenger);
     emit SetCrossDomainMessenger(messenger);
   }
 
@@ -190,14 +190,14 @@ contract MGDCompanyL2Sync is MintGoldDustCompany, MGDEIP712L2Sync {
       this.receiveL1Sync.selector, abi.encode(action, account, state, deadline, mgdSignature)
     );
     if (crossDomainMGDCompany[chainId] == address(0)) {
-      revert MGDCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
+      revert MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
     }
     crossDomainMessenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
   }
 
   function _checkDeadline(uint256 deadline, bool withRevert) private {
     if (withRevert) {
-      require(block.timestamp < deadline, "Expired deadline");
+      require(block.timestamp <= deadline, "Expired deadline");
     } else if (block.timestamp > deadline) {
       emit ExpiredDeadline(deadline);
     }

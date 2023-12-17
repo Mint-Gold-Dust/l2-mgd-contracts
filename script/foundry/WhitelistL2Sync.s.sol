@@ -4,12 +4,12 @@ pragma solidity 0.8.18;
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {MGDCompanyL2Sync, CrossAction} from "../../src/MGDCompanyL2Sync.sol";
+import {MgdCompanyL2Sync, CrossAction} from "../../src/MgdCompanyL2Sync.sol";
 
 contract WhitelistL2Sync is Script {
   /// PARAMS TO BE SET
-  MGDCompanyL2Sync public constant MGDL2SYNC =
-    MGDCompanyL2Sync(0x9ec99f79510fe675c22e537B505c4B3D0e487Dbe);
+  MgdCompanyL2Sync public constant MGDL2SYNC =
+    MgdCompanyL2Sync(0x9ec99f79510fe675c22e537B505c4B3D0e487Dbe);
   uint256 public constant TARGET_CHAIN_ID = 84532;
   address public constant ADDRESS_TO_WHITELIST = 0x7598940ffE4db0De85cfC2296964c84090854fbe;
   bool public constant NEW_STATE = false;

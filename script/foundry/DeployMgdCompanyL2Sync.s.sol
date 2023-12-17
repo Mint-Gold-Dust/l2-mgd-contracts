@@ -4,12 +4,12 @@ pragma solidity 0.8.18;
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
-import {MGDCompanyL2Sync} from "../../src/MGDCompanyL2Sync.sol";
+import {MgdCompanyL2Sync} from "../../src/MgdCompanyL2Sync.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
 
-contract DeployMGDCompanyL2Sync is Script {
+contract DeployMgdCompanyL2Sync is Script {
   /// Initialize params
   address private _OWNER;
   uint256 private constant _PRIMARY_SALE_FEE_PERCENT = 15e18;
@@ -32,14 +32,14 @@ contract DeployMGDCompanyL2Sync is Script {
   /**
    * @dev Run using shell command:
    * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
-   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/DeployMGDCompanyL2Sync.s.sol
+   * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/DeployMgdCompanyL2Sync.s.sol
    */
   function run() public {
     vm.startBroadcast();
 
     _OWNER = msg.sender;
 
-    implementation = address(new MGDCompanyL2Sync());
+    implementation = address(new MgdCompanyL2Sync());
     console.log("Deployed implementation {MGDCompanyL2sync}:", implementation);
 
     proxyAdmin = address(new ProxyAdmin());
@@ -62,20 +62,20 @@ contract DeployMGDCompanyL2Sync is Script {
     proxy = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
     console.log("TransparentUpgradeableProxy for {MGDCompanyL2sync} deployed:", proxy);
 
-    MGDCompanyL2Sync(proxy).setPublicKey(msg.sender);
-    console.log("Called MGDCompanyL2Sync.setPublicKey()", msg.sender);
+    MgdCompanyL2Sync(proxy).setPublicKey(msg.sender);
+    console.log("Called MgdCompanyL2Sync.setPublicKey()", msg.sender);
 
-    // MGDCompanyL2Sync(proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
-    // console.log("Called MGDCompanyL2Sync.setCrossDomainMessenger()", L1_CROSSDOMAIN_MESSENGER);
-    MGDCompanyL2Sync(proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
-    console.log("Called MGDCompanyL2Sync.setCrossDomainMessenger()", L2_CROSSDOMAIN_MESSENGER);
+    // MgdCompanyL2Sync(proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
+    // console.log("Called MgdCompanyL2Sync.setCrossDomainMessenger()", L1_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
+    console.log("Called MgdCompanyL2Sync.setCrossDomainMessenger()", L2_CROSSDOMAIN_MESSENGER);
 
-    // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(1, proxy); // mainnet
-    // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(8453, proxy); // base
-    MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(11155111, proxy); // sepolia
-    // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(84532, proxy); // base-sepolia
-    // MGDCompanyL2Sync(proxy).setCrossDomainMGDCompany(31337, proxy); // localhost
-    console.log("Called MGDCompanyL2Sync.setCrossDomainMGDCompany()");
+    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(1, proxy); // mainnet
+    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(8453, proxy); // base
+    MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(11155111, proxy); // sepolia
+    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(84532, proxy); // base-sepolia
+    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(31337, proxy); // localhost
+    console.log("Called MgdCompanyL2Sync.setCrossDomainMGDCompany()");
 
     vm.stopBroadcast();
   }
