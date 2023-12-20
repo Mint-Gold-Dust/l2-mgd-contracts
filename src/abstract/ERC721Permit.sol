@@ -3,14 +3,11 @@ pragma solidity 0.8.18;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-/**
- * @title ERC721Permit
- * @author
- * @notice This implements the permit function to transfer NFTs
- * using a signature.
- * @dev  This implementation is inspired by:
- * https://github.com/Uniswap/v3-periphery/blob/main/contracts/base/ERC721Permit.sol
- */
+/// @title ERC721Permit
+/// @author Mint Gold Dust LLC
+/// @notice This implements the permit function to transfer NFTs using a signature.
+/// @dev This implementation is inspired by:
+/// https://github.com/Uniswap/v3-periphery/blob/main/contracts/base/ERC721Permit.sol
 abstract contract ERC721Permit {
   // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
   bytes32 private constant _TYPE_HASH =

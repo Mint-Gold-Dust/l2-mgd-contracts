@@ -8,8 +8,8 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IEscrowableNFT} from "./interfaces/IEscrowableNFT.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {MgdL1NFTData} from "./abstract/MgdL2NFT.sol";
-import {MgdL2NFTVoucher} from "./MgdL2NFTVoucher.sol";
+import {MgdL2NFTVoucher, MgdL1MarketData} from "./MgdL2NFTVoucher.sol";
+import {MgdCompanyL2Sync} from "./MgdCompanyL2Sync.sol";
 
 /// @title MGDL2EscrowNFT
 /// @notice Escrow contract that holds an NFT due to activity in a L2.
@@ -17,39 +17,87 @@ import {MgdL2NFTVoucher} from "./MgdL2NFTVoucher.sol";
 /// @custom:contact klvh@mintgolddust.io
 /// @dev This contract is meant to be deployed on the L1.
 contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
-  /// events
+  /// Events
+
+  /// @dev Emit when NFT is placed into escrow. This event data is used to mint the voucher in the L2.
   event EnterEscrow(
-    address indexed nftcontract,
+    address nftcontract,
     uint256 indexed tokenId,
     uint256 amount,
-    address owner,
+    address indexed owner,
     bytes32 blockHash,
-    MgdL1NFTData tokenData,
-    uint256 indexed identifier
+    MgdL1MarketData marketData,
+    uint256 indexed voucherId
   );
+
+  /// @dev Emit when `setRedeemClearanceKey()` is called.
+  event RedeemClearanceKey(uint256 indexed key, bool state);
+
+  /// @dev Emit when NFT is released from escrow.
   event ReleasedEscrow(
-    address indexed nftcontract, uint256 indexed tokenId, uint256 indexed identifier, uint256 amount
+    address indexed receiver,
+    address nftcontract,
+    uint256 indexed tokenId,
+    uint256 amount,
+    uint256 indexed voucherId,
+    uint256 key
   );
+  /// @dev Emit when `_setMessenger()` is called.
+  event SetMessenger(address messenger);
+  /// @dev Emit when `_setVoucherL2()` is called.
+  event SetVoucherL2(address newVoucher);
+
+  /// Custom Errors
+
+  error MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed();
+  error MgdL2NFTEscrow__checkZeroAddress_notAllowed();
+  error MgdL2NFTEscrow__onERC1155BatchReceived_notSupported();
+  error MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
+  error MgdL2NFTEscrow__releaseFromEscrow_useCreateAndReleaseFromEscrow();
+  error MgdL2NFTEscrow__createAndReleaseFromEscrow_wrongInputs();
 
   bytes4 private constant _EMPTY_BYTES4 = 0x00000000;
+  uint256 private constant _REF_NUMBER =
+    0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 
-  // keccak256(abi.encodePacked(address nft,uint tokenId, uint amount)) => address receiver
-  mapping(bytes32 => address) internal _releaseAuthorized;
+  MgdCompanyL2Sync internal _mgdCompany;
 
-  ICrossDomainMessenger public crossDomainMessenger;
+  /// @dev Mapping set from L2 to identify clearance key to release nft from escrow.
+  /// uint256 releaseKey => bool cleared
+  mapping(uint256 => bool) public redeemClearance;
 
-  address public mgdL2Voucher;
+  ICrossDomainMessenger public messenger;
+
+  address public voucherL2;
 
   /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
-   * variables without shifting down storage in the inheritance chain.
-   * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+   * ///@dev This empty reserved space is put in place to allow future versions to add new
+   * ///variables without shifting down storage in the inheritance chain.
+   * ///See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
   uint256[50] private __gap;
+
+  modifier onlyCrossAuthorized() {
+    if (
+      msg.sender != address(messenger) && messenger.xDomainMessageSender() != voucherL2
+        && msg.sender != address(_mgdCompany)
+    ) {
+      revert MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed();
+    }
+    _;
+  }
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
+  }
+
+  /// @dev Initializes the contract
+  function initialize(address mgdCompanyL2Sync) external initializer {
+    _checkZeroAddress(mgdCompanyL2Sync);
+    _mgdCompany = MgdCompanyL2Sync(mgdCompanyL2Sync);
+    ICrossDomainMessenger crossmessenger = _mgdCompany.messenger();
+    _setMessenger(address(crossmessenger));
   }
 
   function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
@@ -57,16 +105,14 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
       || interfaceId == type(IERC1155Receiver).interfaceId;
   }
 
-  /**
-   * @param nft contract
-   * @param tokenId to be moved into escrow
-   * @param owner current owner of tokenId
-   * @param amount of tokenId
-   * @param deadline expiration of the attached signature
-   * @param signature to be used in {nft.permit(...)}
-   * @dev Requirements:
-   * - `signature` must be done by the current owner of `tokenId`.
-   */
+  /// @dev Requirements:
+  /// - `signature` must be done by the current owner of `tokenId`.
+  /// @param nft contract
+  /// @param tokenId to be moved into escrow
+  /// @param owner current owner of tokenId
+  /// @param amount of tokenId
+  /// @param deadline expiration of the attached signature
+  /// @param signature to be used in {nft.permit(...)}
   function moveToEscrowOnBehalf(
     address nft,
     address owner,
@@ -82,25 +128,79 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     IEscrowableNFT(nft).transfer(owner, address(this), tokenId, amount);
   }
 
-  /**
-   * @dev Requirements:
-   * - Must be called by {MgdCompanyL2Sync.crossDomainMessenger}
-   */
-  function releaseFromEscrow(uint256 tokenId, uint256 amount) external {
-    // TODO
+  ///@dev Called by authorized cross domain messenger to clear release of escrowed NFT.
+  function setRedeemClearanceKey(uint256 key, bool state) external onlyCrossAuthorized {
+    redeemClearance[key] = state;
+    emit RedeemClearanceKey(key, state);
   }
 
-  function getReleaseAuthorized(
+  /// @notice Returns the release key status.
+  /// The Input data can be obtained from event when calling {MgdL2Voucher.redeemVoucherToL1(...)} in L2.
+  /// @param voucherId used as voucherId in L2 voucher contract
+  /// @param nft token address to redeem
+  /// @param tokenId  to redeeem
+  /// @param amount to redeem
+  /// @param owner who will receive nft
+  /// @param blockHash of tx in L2 where {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called
+  /// @param marketData status of voucher when redeem call was initiated in L2
+  function getRedeemClearanceKey(
+    uint256 voucherId,
     address nft,
     uint256 tokenId,
-    uint256 amount
+    uint256 amount,
+    address owner,
+    bytes32 blockHash,
+    MgdL1MarketData calldata marketData
   )
-    public
+    external
     view
-    returns (address)
+    returns (bool)
   {
-    bytes32 key = keccak256(abi.encodePacked(nft, tokenId, amount));
-    return _releaseAuthorized[key];
+    uint256 key =
+      _generateL1RedeemKey(voucherId, nft, tokenId, amount, owner, blockHash, marketData);
+    return redeemClearance[key];
+  }
+
+  ///
+  /// @param voucherId used while in L2
+  /// @param nft contract address of NFT to release
+  /// @param tokenId of NFT to  release
+  /// @param amount of editions of NFT to release
+  /// @param owner who will receive NFT
+  /// @param blockHash when {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called in L2
+  /// @param marketData  latest status when {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called in L2
+  /// @param tokenURI ?required only when releasing a L2 natively created voucher
+  /// @param memoir ?optional only when releasing a L2 natively created voucher (suggest to use the same as L2)
+  function releaseFromEscrow(
+    uint256 voucherId,
+    address nft,
+    uint256 tokenId,
+    uint256 amount,
+    address owner,
+    bytes32 blockHash,
+    MgdL1MarketData calldata marketData,
+    string calldata tokenURI,
+    bytes calldata memoir
+  )
+    external
+  {
+    uint256 key =
+      _generateL1RedeemKey(voucherId, nft, tokenId, amount, owner, blockHash, marketData);
+    if (!redeemClearance[key]) {
+      revert MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
+    }
+    uint256 newTokenId;
+    if (tokenId == _REF_NUMBER) {
+      require(bytes(tokenURI).length > 0, "pass tokenURI");
+      newTokenId = IEscrowableNFT(nft).mintNft(tokenURI, marketData.royaltyPercent, amount, memoir);
+    }
+    if (newTokenId > 0) {
+      IEscrowableNFT(nft).transfer(address(this), owner, newTokenId, amount);
+      IEscrowableNFT(nft).updateMarketData(newTokenId, marketData, true);
+    } else {
+      IEscrowableNFT(nft).transfer(address(this), owner, tokenId, amount);
+      IEscrowableNFT(nft).updateMarketData(tokenId, marketData, false);
+    }
   }
 
   function onERC721Received(
@@ -114,14 +214,15 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   {
     IERC721 nft = IERC721(msg.sender);
     _checkDataNonZero(data);
-    MgdL1NFTData memory tokenData = abi.decode(data, (MgdL1NFTData));
     if (nft.ownerOf(tokenId) == address(this)) {
-      (uint256 identifier, bytes32 blockHash) =
-        _generateL1EscrowedIdentifier(address(nft), tokenId, 1, from, tokenData);
+      MgdL1MarketData memory marketData = abi.decode(data, (MgdL1MarketData));
 
-      _sendEscrowNoticeToL2(identifier, true);
+      (uint256 voucherId, bytes32 blockHash) =
+        _generateL1EscrowedIdentifier(address(nft), tokenId, 1, from, marketData);
 
-      emit EnterEscrow(address(nft), tokenId, 1, from, blockHash, tokenData, identifier);
+      _sendEscrowNoticeToL2(voucherId, true);
+
+      emit EnterEscrow(address(nft), tokenId, 1, from, blockHash, marketData, voucherId);
       return this.onERC721Received.selector;
     } else {
       return _EMPTY_BYTES4;
@@ -141,18 +242,18 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   {
     IERC1155 nft = IERC1155(msg.sender);
     _checkDataNonZero(data);
-    MgdL1NFTData memory tokenData = abi.decode(data, (MgdL1NFTData));
+    MgdL1MarketData memory marketData = abi.decode(data, (MgdL1MarketData));
     /**
-     * @dev TODO confirm if the below check is safe, given there could be
+     * TODO confirm if the below check is safe, given there could be
      * tokenIds of the same contract already in escrow.
      */
     if (nft.balanceOf(address(this), tokenId) >= amount) {
-      (uint256 identifier, bytes32 blockHash) =
-        _generateL1EscrowedIdentifier(address(nft), tokenId, amount, from, tokenData);
+      (uint256 voucherId, bytes32 blockHash) =
+        _generateL1EscrowedIdentifier(address(nft), tokenId, amount, from, marketData);
 
-      _sendEscrowNoticeToL2(identifier, true);
+      _sendEscrowNoticeToL2(voucherId, true);
 
-      emit EnterEscrow(address(nft), tokenId, amount, from, blockHash, tokenData, identifier);
+      emit EnterEscrow(address(nft), tokenId, amount, from, blockHash, marketData, voucherId);
       return this.onERC1155Received.selector;
     } else {
       return _EMPTY_BYTES4;
@@ -161,44 +262,46 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
 
   function onERC1155BatchReceived(
     address, // operator
-    address from,
-    uint256[] calldata ids,
-    uint256[] calldata values,
-    bytes calldata data
+    address, // operator
+    uint256[] calldata, // ids
+    uint256[] calldata, // values
+    bytes calldata // data
   )
     external
+    pure
     returns (bytes4)
   {
-    IERC1155 nft = IERC1155(msg.sender);
-    uint256 len = ids.length;
-    uint256 counted;
-    MgdL1NFTData[] memory datas = abi.decode(data, (MgdL1NFTData[]));
-    for (uint256 i = 0; i < len; i++) {
-      /**
-       * @dev TODO confirm if the below check is safe, given there could be
-       * tokenIds of the same contract already in escrow.
-       */
-      if (nft.balanceOf(address(this), ids[i]) >= values[i]) {
-        (uint256 identifier, bytes32 blockHash) =
-          _generateL1EscrowedIdentifier(address(nft), ids[i], values[i], from, datas[i]);
+    revert MgdL2NFTEscrow__onERC1155BatchReceived_notSupported();
+    // IERC1155 nft = IERC1155(msg.sender);
+    // uint256 len = ids.length;
+    // uint256 counted;
+    // MgdL1MarketData[] memory datas = abi.decode(data, (MgdL1MarketData[]));
+    // for (uint256 i = 0; i < len; i++) {
+    //   /**
+    //    * TODO confirm if the below check is safe, given there could be
+    //    * tokenIds of the same contract already in escrow.
+    //    */
+    //   if (nft.balanceOf(address(this), ids[i]) >= values[i]) {
+    //     (uint256 voucherId, bytes32 blockHash) =
+    //       _generateL1EscrowedIdentifier(address(nft), ids[i], values[i], from, datas[i]);
 
-        _sendEscrowNoticeToL2(identifier, true);
+    //     _sendEscrowNoticeToL2(voucherId, true);
 
-        emit EnterEscrow(address(nft), ids[i], values[i], from, blockHash, datas[i], identifier);
-        counted++;
-      }
-    }
-    if (counted == len) {
-      return this.onERC1155Received.selector;
-    } else {
-      return _EMPTY_BYTES4;
-    }
+    //     emit EnterEscrow(address(nft), ids[i], values[i], from, blockHash, datas[i], voucherId);
+    //     counted++;
+    //   }
+    // }
+    // if (counted == len) {
+    //   return this.onERC1155Received.selector;
+    // } else {
+    //   return _EMPTY_BYTES4;
+    // }
   }
 
   /**
-   * @dev Returns signature v, r, s values.
+   * ///@dev Returns signature v, r, s values.
    *
-   * @param signature abi.encodePacked(r,s,v)
+   * ///@param signature abi.encodePacked(r,s,v)
    */
   function _getSignatureValues(bytes memory signature)
     private
@@ -224,25 +327,65 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     uint256 tokenId,
     uint256 amount,
     address owner,
-    MgdL1NFTData memory tokenData
+    MgdL1MarketData memory marketData
   )
     internal
     view
-    returns (uint256 identifier, bytes32 blockHash)
+    returns (uint256 voucherId, bytes32 blockHash)
   {
     blockHash = blockhash(block.number);
-    identifier = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, tokenData)));
+    voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
-  function _checkDataNonZero(bytes memory data) internal pure virtual {
-    if (data.length == 0) {
-      revert("Wrong data size");
-    }
+  function _generateL1RedeemKey(
+    uint256 voucherId,
+    address nft,
+    uint256 tokenId,
+    uint256 amount,
+    address owner,
+    bytes32 blockHash,
+    MgdL1MarketData calldata marketData
+  )
+    internal
+    pure
+    returns (uint256 key)
+  {
+    key =
+      uint256(keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
   function _sendEscrowNoticeToL2(uint256 voucherId, bool state) internal {
     bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTVoucher.setMintClearance.selector, voucherId, state);
-    crossDomainMessenger.sendMessage(mgdL2Voucher, message, 1000000);
+      abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, state);
+    messenger.sendMessage(voucherL2, message, 1000000);
+  }
+
+  /// @dev Sets the canonical cross domain messenger address between L1<>L2 or L2<>L1
+  /// @param newMessenger canonical address between L1 or L2
+  function _setMessenger(address newMessenger) internal {
+    _checkZeroAddress(newMessenger);
+    messenger = ICrossDomainMessenger(newMessenger);
+    emit SetMessenger(newMessenger);
+  }
+
+  /// @dev Sets the contract address of {MgdL2NFTVoucher} deployed in L2.
+  function _setVoucherL2(address newVoucher) internal {
+    _checkZeroAddress(newVoucher);
+    voucherL2 = newVoucher;
+    emit SetVoucherL2(newVoucher);
+  }
+
+  /// @dev Revert if `addr` is zero
+  function _checkZeroAddress(address addr) internal pure {
+    if (addr == address(0)) {
+      revert MgdL2NFTEscrow__checkZeroAddress_notAllowed();
+    }
+  }
+
+  /// @dev Revert if `data` is zero length
+  function _checkDataNonZero(bytes memory data) internal pure virtual {
+    if (data.length == 0) {
+      revert("Wrong data size");
+    }
   }
 }

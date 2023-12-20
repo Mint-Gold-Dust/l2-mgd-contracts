@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
+/// @title ERC1155Allowance
+/// @author Mint Gold Dust LLC
+/// @notice Extension for more granular allowance in ERC1155.
+/// @dev This extension is required for the ERC1155Permit implementation in this repository.
 abstract contract ERC1155Allowance {
   ///@dev Emit when `allowance` is set.
-  event SetAllowance(
-    address indexed owner, address indexed spender, uint256 indexed id, uint256 amount
+  event ApprovalByAmount(
+    address indexed owner, address indexed operator, uint256 indexed id, uint256 amount
   );
 
   /// Custom Errors
   error ERC1155Allowance__spendAllowance_insufficient();
   error ERC1155Allowance__checkZeroAddress_notAllowed();
 
-  // keccak256(abi.encodePacked(owner,spender,tokenId)) => amount
+  // keccak256(abi.encodePacked(owner,operator,tokenId)) => amount
   mapping(bytes32 => uint256) internal _allowance;
 
   /**
@@ -26,7 +30,7 @@ abstract contract ERC1155Allowance {
   /// @param owner giving allowance
   /// @param operator to check allowance
   /// @param tokenId to check
-  function getAllowance(
+  function allowance(
     address owner,
     address operator,
     uint256 tokenId
@@ -36,13 +40,13 @@ abstract contract ERC1155Allowance {
     virtual
     returns (uint256);
 
-  /// @notice Allow `msg.sender` for `spender` to `transfer` `tokenId` `amount`.
-  /// @param spender of allowance
+  /// @notice Allow `msg.sender` for `operator` to `transfer` `tokenId` `amount`.
+  /// @param operator of allowance
   /// @param tokenId to give allowance
   /// @param amount to give allowance
-  function setAllowance(address spender, uint256 tokenId, uint256 amount) public returns (bool) {
+  function approve(address operator, uint256 tokenId, uint256 amount) public returns (bool) {
     address owner = msg.sender;
-    _setAllowance(owner, spender, tokenId, amount);
+    _setAllowance(owner, operator, tokenId, amount);
     return true;
   }
 
@@ -66,7 +70,7 @@ abstract contract ERC1155Allowance {
 
   function _setAllowance(
     address owner,
-    address spender,
+    address operator,
     uint256 tokenId,
     uint256 amount
   )
@@ -74,9 +78,9 @@ abstract contract ERC1155Allowance {
     virtual
   {
     _checkZeroAddress(owner);
-    _checkZeroAddress(spender);
-    _allowance[_hashedOwnerSpenderTokenID(owner, spender, tokenId)] = amount;
-    emit SetAllowance(owner, spender, tokenId, amount);
+    _checkZeroAddress(operator);
+    _allowance[_hashedOwnerSpenderTokenID(owner, operator, tokenId)] = amount;
+    emit ApprovalByAmount(owner, operator, tokenId, amount);
   }
 
   function _getAllowance(
@@ -86,9 +90,9 @@ abstract contract ERC1155Allowance {
   )
     internal
     view
-    returns (uint256 allowance)
+    returns (uint256)
   {
-    allowance = _allowance[_hashedOwnerSpenderTokenID(owner, operator, tokenId)];
+    return _allowance[_hashedOwnerSpenderTokenID(owner, operator, tokenId)];
   }
 
   function _hashedOwnerSpenderTokenID(
