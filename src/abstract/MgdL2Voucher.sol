@@ -8,19 +8,24 @@ import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
 
-struct MgdL1NFTData {
+struct MgdL1MarketData {
   address artist;
   bool hasCollabs;
   bool tokenWasSold;
   uint40 collabsQuantity;
   uint40 primarySaleQuantityToSell;
-  uint128 representedAmount;
-  uint128 royaltyPercent;
+  uint256 royaltyPercent;
   address[4] collabs;
   uint256[5] collabsPercentage;
 }
 
-abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+struct L1VoucherData {
+  address nft;
+  uint256 tokenId;
+  uint256 representedAmount;
+}
+
+abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, ReentrancyGuardUpgradeable {
   /// Events
 
   /// @dev Emit when minting.
@@ -46,6 +51,9 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
     uint256 indexed voucherId, bool isERC721, address owner, address burner, uint256 amount
   );
 
+  event SetMgdERC721(address newMgdERC721);
+  event SetMgdERC1155(address newMgdERC1155);
+
   /// Custom Errors
   error MgdL2NFT__checkZeroAddress_notAllowed();
   error MgdL2NFT__checkGtZero_notZero();
@@ -55,19 +63,29 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
   error MgdL2NFT__splitMint_invalidArray();
   error MgdL2NFT__collectorMint_disabledInL2();
 
+  uint256 private constant _REF_NUMBER =
+    0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+
   MgdCompanyL2Sync internal _mgdCompany;
   address private _mintGoldDustSetPrice;
   address private _mintGoldDustMarketplaceAuction;
 
   // voucherId => bool isNative
-  mapping(uint256 => bool) private _natives;
+  mapping(uint256 => bool) internal _natives;
+  // voucherId => struct MgdL1MarketData
+  mapping(uint256 => MgdL1MarketData) internal _voucherMarketData;
+  // voucherId => struct L1VoucherData
+  mapping(uint256 => L1VoucherData) internal _voucherL1Data;
 
-  // voucherId => struct MgdL1NFTData
-  mapping(uint256 => MgdL1NFTData) internal _voucherData;
   mapping(uint256 => bytes) internal _tokenIdMemoir;
 
+  // L1 reference addresses
+  address public escrowL1;
+  address public mgdERC721L1;
+  address public mgdERC1155L1;
+
   /**
-   * @dev This empty reserved space is put in place to allow future versions to add new
+   * @dev This empty reserved space is put in place to allow future upgrades to add new
    * variables without shifting down storage in the inheritance chain.
    */
   uint256[50] private __gap;
@@ -88,18 +106,31 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
     _;
   }
 
-  /// @dev Initializes the contract by setting `_mgdCompany`
-  function __MgdL2NFT_init(address mgdCompanyL2Sync) internal onlyInitializing {
+  /// @dev Initializes this contract
+  function __MgdL2NFT_init(
+    address mgdCompanyL2Sync,
+    address mgdERC721,
+    address mgdERC1155
+  )
+    internal
+    onlyInitializing
+  {
     _checkZeroAddress(mgdCompanyL2Sync);
+    _mgdCompany = MgdCompanyL2Sync(payable(mgdCompanyL2Sync));
+    _setMgdERC721(mgdERC721);
+    _setMgdERC1155(mgdERC1155);
     __ReentrancyGuard_init();
     __Pausable_init();
-    _mgdCompany = MgdCompanyL2Sync(payable(mgdCompanyL2Sync));
   }
 
   function transfer(address from, address to, uint256 tokenId, uint256 amount) external virtual;
 
-  function getVoucherData(uint256 id) public view returns (MgdL1NFTData memory) {
-    return _voucherData[id];
+  function getVoucherMarketData(uint256 id) public view returns (MgdL1MarketData memory) {
+    return _voucherMarketData[id];
+  }
+
+  function getVoucherL1Data(uint256 id) public view returns (L1VoucherData memory) {
+    return _voucherL1Data[id];
   }
 
   function isVoucherNative(uint256 id) public view returns (bool) {
@@ -113,12 +144,12 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
   /// @notice Mint a native voucher that represents a new MintGoldDustNFT token in a L2.
   /// @param tokenURI the URI that contains the metadata for the NFT.
   /// @param royalty percentage to be applied for this NFT secondary sales.
-  /// @param amount the quantity to be minted for this token.
+  /// @param representedAmount editions adjoined to this voucher.
   /// @param memoir for this mint
   function mintNft(
     string memory tokenURI,
-    uint128 royalty,
-    uint40 amount,
+    uint256 royalty,
+    uint40 representedAmount,
     bytes memory memoir
   )
     public
@@ -129,19 +160,27 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
     returns (uint256)
   {
     _checkRoyalty(royalty);
-    MgdL1NFTData memory tokenData = MgdL1NFTData({
+    _checkGtZero(representedAmount);
+
+    MgdL1MarketData memory marketData = MgdL1MarketData({
       artist: msg.sender,
       hasCollabs: false,
       tokenWasSold: false,
       collabsQuantity: 0,
-      primarySaleQuantityToSell: amount,
-      representedAmount: amount,
+      primarySaleQuantityToSell: representedAmount,
       royaltyPercent: royalty,
       collabs: [address(0), address(0), address(0), address(0)],
       collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
     });
-    uint256 voucherId = _executeMintFlow(msg.sender, tokenData, 0, tokenURI, memoir);
+
+    uint256 voucherId =
+      _executeMintFlow(msg.sender, representedAmount, marketData, 0, tokenURI, memoir);
     _natives[voucherId] = true;
+    _voucherL1Data[voucherId] = L1VoucherData({
+      nft: (representedAmount > 1 ? mgdERC1155L1 : mgdERC721L1),
+      tokenId: _REF_NUMBER,
+      representedAmount: representedAmount
+    });
     return voucherId;
   }
 
@@ -223,15 +262,15 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
   /// @param sold The amount sold that needs to be subtracted from the remaining quantity._mintGoldDustSetPrice
   function updateprimarySaleQuantityToSell(uint256 voucherId, uint256 sold) external {
     _checkMarketPlaceCaller(msg.sender);
-    uint40 remaining = _voucherData[voucherId].primarySaleQuantityToSell;
+    uint40 remaining = _voucherMarketData[voucherId].primarySaleQuantityToSell;
     if (remaining > 0) {
-      _voucherData[voucherId].primarySaleQuantityToSell = remaining - uint40(sold);
+      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - uint40(sold);
     }
   }
 
   function setTokenWasSold(uint256 voucherId) public {
     _checkMarketPlaceCaller(msg.sender);
-    _voucherData[voucherId].tokenWasSold = true;
+    _voucherMarketData[voucherId].tokenWasSold = true;
   }
 
   /// @notice Sets the `_mintGoldDustSetPrice` address.
@@ -253,9 +292,20 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
     _mintGoldDustMarketplaceAuction = mintGoldDustMarketplaceAuction_;
   }
 
+  /// @notice Pause the contract
+  function pauseContract() external isOwner {
+    _pause();
+  }
+
+  /// @notice Unpause the contract
+  function unpauseContract() external isOwner {
+    _unpause();
+  }
+
   function _executeMintFlow(
     address owner,
-    MgdL1NFTData memory tokenData,
+    uint256 representedAmount,
+    MgdL1MarketData memory tokenData,
     uint256 generatedL1VoucherId,
     string memory tokenURI,
     bytes memory memoir
@@ -284,8 +334,8 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
       totalPercentage += collabsPercentage[i];
 
       // Store the percentage for each valid collaborator
-      _voucherData[voucherId].collabs[i] = collaborators[i];
-      _voucherData[voucherId].collabsPercentage[i] = collabsPercentage[i];
+      _voucherMarketData[voucherId].collabs[i] = collaborators[i];
+      _voucherMarketData[voucherId].collabsPercentage[i] = collabsPercentage[i];
     }
 
     // Artist's percentage must be greater than zero
@@ -302,26 +352,28 @@ abstract contract MgdL2NFT is Initializable, PausableUpgradeable, ReentrancyGuar
       revert MgdL2NFT__executeSplitMintFlow_failedPercentSumCheck();
     }
 
-    _voucherData[voucherId].collabsQuantity = collabCount + 1;
-    _voucherData[voucherId].collabsPercentage[collabCount] = collabsPercentage[collabCount];
+    _voucherMarketData[voucherId].collabsQuantity = collabCount + 1;
+    _voucherMarketData[voucherId].collabsPercentage[collabCount] = collabsPercentage[collabCount];
 
-    _voucherData[voucherId].hasCollabs = true;
+    _voucherMarketData[voucherId].hasCollabs = true;
     emit MintGoldDustNftMintedAndSplitted(
       voucherId, collaborators, collabsPercentage, address(this)
     );
   }
 
-  /// @notice Pause the contract
-  function pauseContract() external isOwner {
-    _pause();
+  function _setMgdERC721(address newMgdERC721) internal {
+    _checkZeroAddress(newMgdERC721);
+    mgdERC721L1 = newMgdERC721;
+    emit SetMgdERC721(newMgdERC721);
   }
 
-  /// @notice Unpause the contract
-  function unpauseContract() external isOwner {
-    _unpause();
+  function _setMgdERC1155(address newMgdERC1155) internal {
+    _checkZeroAddress(newMgdERC1155);
+    mgdERC1155L1 = newMgdERC1155;
+    emit SetMgdERC1155(newMgdERC1155);
   }
 
-  function _generateL2NativeIdentifier(MgdL1NFTData memory tokenData)
+  function _generateL2NativeIdentifier(MgdL1MarketData memory tokenData)
     internal
     view
     returns (uint256 identifier)

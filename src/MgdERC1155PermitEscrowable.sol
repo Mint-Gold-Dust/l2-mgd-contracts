@@ -11,7 +11,7 @@ import {MgdCompanyL2Sync, ICrossDomainMessenger} from "./MgdCompanyL2Sync.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {MgdL1NFTData} from "./abstract/MgdL2NFT.sol";
+import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
 
 /**
  * @title MgdERC1155PermitEscrowable
@@ -27,7 +27,15 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
   /**
    * @dev Emit when `escrow` address is set.
    */
-  event SetEscrow(address esccrow_);
+  event SetEscrow(address escrow_);
+
+  /**
+   * @dev Emit when `escrow` address is set.
+   */
+  event EscrowUpdateMarketData(uint256 indexed tokenId, MgdL1MarketData marketData);
+
+  /// Custom Errors
+  error MgdERC1155PermitEscrowable__onlyEscrow_notAllowed();
 
   address public escrow;
 
@@ -38,6 +46,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
   uint256[50] private __gap;
 
   /// @dev Overriden to utilize the allowance in {ERC1155Allowance} set up in this contract.
+  /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
   /// Requirements:
   /// - If using from != caller, and is not approved for all, call `_spendAllowance`
   function safeTransferFrom(
@@ -52,20 +61,20 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
   {
     address operator = msg.sender;
     require(
-      from == operator || getAllowance(from, operator, id) >= amount,
+      from == operator || allowance(from, operator, id) >= amount,
       "ERC1155: caller is not owner or approved or has allowance"
     );
     if (from != operator && !isApprovedForAll(from, operator)) {
       _spendAllowance(from, operator, id, amount);
     }
     if (escrow != address(0) && to == escrow) {
-      data = getTokenIdData(id, amount);
+      data = getTokenIdData(id);
     }
     _safeTransferFrom(from, to, id, amount, data);
   }
 
   /// @inheritdoc ERC1155Allowance
-  function getAllowance(
+  function allowance(
     address owner,
     address operator,
     uint256 tokenId
@@ -138,29 +147,45 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     permit(owner, operator, tokenId, amount, deadline, v, r, s);
   }
 
+  function updateMarketData(
+    uint256 tokenId,
+    MgdL1MarketData calldata marketData,
+    bool isL2Native
+  )
+    external
+  {
+    if (msg.sender != escrow) {
+      revert MgdERC1155PermitEscrowable__onlyEscrow_notAllowed();
+    }
+    if (isL2Native) {
+      tokenIdArtist[tokenId] = marketData.artist;
+      if (marketData.hasCollabs) {
+        hasTokenCollaborators[tokenId] = marketData.hasCollabs;
+        tokenIdCollaboratorsQuantity[tokenId] = marketData.collabsQuantity;
+        tokenCollaborators[tokenId] = marketData.collabs;
+        tokenIdCollaboratorsPercentage[tokenId] = marketData.collabsPercentage;
+      }
+    }
+    tokenWasSold[tokenId] = marketData.tokenWasSold;
+    primarySaleQuantityToSold[tokenId] = marketData.primarySaleQuantityToSell;
+
+    emit EscrowUpdateMarketData(tokenId, marketData);
+  }
+
   function setEscrow(address escrow_) external isZeroAddress(escrow_) isowner {
     escrow = escrow_;
     emit SetEscrow(escrow_);
   }
 
-  function getTokenIdData(
-    uint256 tokenId,
-    uint256 amount
-  )
-    public
-    view
-    virtual
-    returns (bytes memory data)
-  {
+  function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
     // TODO safe number casting
     data = abi.encode(
-      MgdL1NFTData({
+      MgdL1MarketData({
         artist: tokenIdArtist[tokenId],
         hasCollabs: hasTokenCollaborators[tokenId],
         tokenWasSold: tokenWasSold[tokenId],
         collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
         primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
-        representedAmount: uint128(amount),
         royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]

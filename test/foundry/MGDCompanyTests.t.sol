@@ -76,10 +76,10 @@ contract MGDCompanyTests is Test {
     MgdCompanyL2Sync(l1Proxy).setValidator(Bob.addr, true);
     MgdCompanyL2Sync(l2Proxy).setValidator(Bob.addr, true);
 
-    MgdCompanyL2Sync(l1Proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l1Proxy).setMessenger(L1_CROSSDOMAIN_MESSENGER);
     MgdCompanyL2Sync(l1Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2Proxy); // localhost
 
-    MgdCompanyL2Sync(l2Proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l2Proxy).setMessenger(L2_CROSSDOMAIN_MESSENGER);
     MgdCompanyL2Sync(l2Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1Proxy); // localhost
 
     deployCodeTo("MockCrossDomainMessenger.sol", L1_CROSSDOMAIN_MESSENGER);

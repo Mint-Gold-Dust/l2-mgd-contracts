@@ -26,7 +26,7 @@ contract WhitelistL2Sync is Script {
     require(address(MGDL2SYNC) != address(0), "Set `MGDL2SYNC`");
     require(MGDL2SYNC.publicKey() != address(0), "Pubkey() in `MGDL2SYNC` undefined");
     require(
-      address(MGDL2SYNC.crossDomainMessenger()) != address(0),
+      address(MGDL2SYNC.messenger()) != address(0),
       "crossDomainMessenger() in `MGDL2SYNC` undefined"
     );
     require(TARGET_CHAIN_ID != 0, "Set `TARGET_CHAIN_ID`");

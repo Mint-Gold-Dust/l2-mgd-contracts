@@ -4,6 +4,11 @@ pragma solidity 0.8.18;
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ERC1155Allowance} from "./ERC1155Allowance.sol";
 
+/// @title ERC1155Permit
+/// @author Mint Gold Dust LLC
+/// @notice This implements the permit function to transfer NFTs using a signature.
+/// @dev This implementation is inspired by:
+/// https://github.com/primitivefinance/rmm-manager/blob/main/contracts/base/ERC1155Permit.sol
 abstract contract ERC1155Permit is ERC1155Allowance {
   // keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
   bytes32 private constant _TYPE_HASH =

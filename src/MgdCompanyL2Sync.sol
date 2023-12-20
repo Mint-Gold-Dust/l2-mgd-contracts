@@ -11,11 +11,8 @@ import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
 contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
-  /**
-   * @dev Emit when `setCrossDomainMessenger()` is called.
-   * @param messenger address to be set
-   */
-  event SetCrossDomainMessenger(address messenger);
+  /// @dev Emit when `setMessenger()` is called.
+  event SetMessenger(address messenger);
 
   /**
    * @dev Emit when `setCrossDomainMGDCompany()` is called.
@@ -41,13 +38,13 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
   /// Custom errors
   error MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
 
-  ICrossDomainMessenger public crossDomainMessenger;
+  ICrossDomainMessenger public messenger;
 
   /// chain Id => MgdCompanyL2Sync address
   mapping(uint256 => address) public crossDomainMGDCompany;
 
   modifier onlyCrossMessenger() {
-    require(msg.sender == address(crossDomainMessenger));
+    require(msg.sender == address(messenger));
     _;
   }
 
@@ -147,14 +144,11 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     }
   }
 
-  /**
-   * @notice Sets defined cross domain messenger address between
-   * L1<>L2 or L2<>L1
-   * @param messenger canonical address between L1 or L2
-   */
-  function setCrossDomainMessenger(address messenger) external onlyOwner isZeroAddress(messenger) {
-    crossDomainMessenger = ICrossDomainMessenger(messenger);
-    emit SetCrossDomainMessenger(messenger);
+  /// @notice Sets the cross domain messenger address between L1<>L2 or L2<>L1
+  /// @param newMessenger canonical address communicating between L1 or L2
+  function setMessenger(address newMessenger) external onlyOwner isZeroAddress(newMessenger) {
+    messenger = ICrossDomainMessenger(newMessenger);
+    emit SetMessenger(newMessenger);
   }
 
   /**
@@ -192,7 +186,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     if (crossDomainMGDCompany[chainId] == address(0)) {
       revert MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
     }
-    crossDomainMessenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
+    messenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
   }
 
   function _checkDeadline(uint256 deadline, bool withRevert) private {

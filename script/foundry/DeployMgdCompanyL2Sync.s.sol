@@ -65,10 +65,10 @@ contract DeployMgdCompanyL2Sync is Script {
     MgdCompanyL2Sync(proxy).setPublicKey(msg.sender);
     console.log("Called MgdCompanyL2Sync.setPublicKey()", msg.sender);
 
-    // MgdCompanyL2Sync(proxy).setCrossDomainMessenger(L1_CROSSDOMAIN_MESSENGER);
-    // console.log("Called MgdCompanyL2Sync.setCrossDomainMessenger()", L1_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(proxy).setCrossDomainMessenger(L2_CROSSDOMAIN_MESSENGER);
-    console.log("Called MgdCompanyL2Sync.setCrossDomainMessenger()", L2_CROSSDOMAIN_MESSENGER);
+    // MgdCompanyL2Sync(proxy).setMessenger(L1_CROSSDOMAIN_MESSENGER);
+    // console.log("Called MgdCompanyL2Sync.setMessenger()", L1_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(proxy).setMessenger(L2_CROSSDOMAIN_MESSENGER);
+    console.log("Called MgdCompanyL2Sync.setMessenger()", L2_CROSSDOMAIN_MESSENGER);
 
     // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(1, proxy); // mainnet
     // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(8453, proxy); // base

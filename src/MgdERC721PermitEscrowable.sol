@@ -9,7 +9,7 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {MgdL1NFTData} from "./abstract/MgdL2NFT.sol";
+import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
 
 /**
  * @title MgdERC721PermitEscrowable
@@ -27,6 +27,14 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
    */
   event SetEscrow(address esccrow_);
 
+  /**
+   * @dev Emit when `escrow` address is set.
+   */
+  event EscrowUpdateMarketData(uint256 indexed tokenId, MgdL1MarketData marketData);
+
+  /// Custom Errors
+  error MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
+
   address public escrow;
 
   /**
@@ -36,6 +44,7 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
   uint256[50] private __gap;
 
   /// @dev Overriden to include `data` from `_getTokenIdData` to send when sending to `escrow` address.
+  /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
   function safeTransferFrom(
     address from,
     address to,
@@ -118,16 +127,40 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
     permit(spender, tokenId, deadline, v, r, s);
   }
 
+  function updateMarketData(
+    uint256 tokenId,
+    MgdL1MarketData calldata marketData,
+    bool isL2Native
+  )
+    external
+  {
+    if (msg.sender != escrow) {
+      revert MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
+    }
+    if (isL2Native) {
+      tokenIdArtist[tokenId] = marketData.artist;
+      if (marketData.hasCollabs) {
+        hasTokenCollaborators[tokenId] = marketData.hasCollabs;
+        tokenIdCollaboratorsQuantity[tokenId] = marketData.collabsQuantity;
+        tokenCollaborators[tokenId] = marketData.collabs;
+        tokenIdCollaboratorsPercentage[tokenId] = marketData.collabsPercentage;
+      }
+    }
+    tokenWasSold[tokenId] = marketData.tokenWasSold;
+    primarySaleQuantityToSold[tokenId] = marketData.primarySaleQuantityToSell;
+
+    emit EscrowUpdateMarketData(tokenId, marketData);
+  }
+
   function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
     // TODO safe number casting
     data = abi.encode(
-      MgdL1NFTData({
+      MgdL1MarketData({
         artist: tokenIdArtist[tokenId],
         hasCollabs: hasTokenCollaborators[tokenId],
         tokenWasSold: tokenWasSold[tokenId],
         collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
         primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
-        representedAmount: 1,
         royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
