@@ -1,14 +1,15 @@
 ![Alt text](mgdlogo.png)
-## Mint Gold Dust (MGD) L2 Contracts Suite
+## Mint Gold Dust (MGD) L2 Smart Contracts Suite
 
 **MGD is a decentralized NFT ecosystem built for artists and collectors.**
 
-This repository contains the smart contracts that allow MGD to operate both in Ethereum and a Op-stack (such as [Base](https://base.org/) or [Optimism](https://www.optimism.io/)) compatible layer 2.
+This repository contains the smart contracts that allow MGD to operate both in Ethereum and an Op-stack compatible layer 2 (such as [Base](https://base.org/) or [Optimism](https://www.optimism.io/).   
+
 The smart contracts in this repositoy introduce the following high level functionality:
 
--   **NFT Portability**: Bring your MGD NFTs from Ethereum to the L2 via an Escrow contract or viceverse.
--   **L2 Usability**: Create and/or sell your art in more and different ways, also affordable, by using the MGD L2 ecosystem.
--   **Simpler Transferability**: Sell, auction or transfer you NFTs with the use of `permit` or signatures, in place of the "annoying" approval transaction.
+-   **NFT Portability**: Bring your MGD NFTs from Ethereum to the L2 or viceverse via an escrow-voucher contract system.
+-   **L2 Usability**: Create and/or sell / auction your art in more exciting and different ways, not to mention also affordable, by using the MGD L2 ecosystem.
+-   **Simpler Transferability**: Approve the sell, auction or transfer of your NFTs with the use of "permits" or signatures, in place of the current additional "annoying" approval transaction.
 
 ## Documentation
 
