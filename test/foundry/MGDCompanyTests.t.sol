@@ -2,54 +2,28 @@
 pragma solidity 0.8.18;
 
 import {console} from "forge-std/console.sol";
-import {Test} from "forge-std/Test.sol";
-import {VmSafe} from "forge-std/StdUtils.sol";
+import {CommonSigners} from "./utils/CommonSigners.t.sol";
+import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
+import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
+import {Helpers} from "./utils/Helpers.t.sol";
 
 import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
 import {MgdCompanyL2Sync, CrossAction} from "../../src/MgdCompanyL2Sync.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
-import {MockCrossDomainMessenger as CDMessenger} from "../mocks/MockCrossDomainMessenger.sol";
 
-contract MGDCompanyTests is Test {
-  // OP stack test constants
-  address private constant L1_CROSSDOMAIN_MESSENGER = 0x866E82a600A1414e583f7F13623F1aC5d58b0Afa; //mainnet
-  address private constant L2_CROSSDOMAIN_MESSENGER = 0x4200000000000000000000000000000000000007; // base
-
+contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, Helpers {
   /// Initialize test params
   address private _OWNER;
-  uint256 private constant _PRIMARY_SALE_FEE_PERCENT = 15e18;
-  uint256 private constant _SECONDARY_SALE_FEE_PERCENT = 5e18;
-  uint256 private constant _COLLECTOR_FEE = 3e18;
-  uint256 private constant _MAX_ROYALTY = 20e18;
-  uint256 private constant _AUCTION_DURATION = 1 days;
-  uint256 private constant _AUCTION_EXTENSION = 5 minutes;
-
-  uint256 private constant _TEST_CHAIN_ID = 31337;
 
   /// addresses
   address public implementation;
   address public proxyAdmin;
-  address public l1Proxy;
-  address public l2Proxy;
-
-  VmSafe.Wallet public Alice;
-  VmSafe.Wallet public Bob;
-  VmSafe.Wallet public Charlie;
-  VmSafe.Wallet public MGDSigner;
-
-  // events
-  event SentMessage(
-    address indexed target, address sender, bytes message, uint256 messageNonce, uint256 gasLimit
-  );
+  address public l1mgdCompany;
+  address public l2mgdCompany;
 
   function setUp() public {
-    Alice = vm.createWallet("Alice");
-    Bob = vm.createWallet("Bob");
-    Charlie = vm.createWallet("Charlie");
-    MGDSigner = vm.createWallet("MgdSigner");
-
     _OWNER = Alice.addr;
 
     vm.startPrank(Alice.addr);
@@ -67,25 +41,20 @@ contract MGDCompanyTests is Test {
       _AUCTION_EXTENSION
     );
 
-    l1Proxy = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
-    l2Proxy = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
+    l1mgdCompany = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
+    l2mgdCompany = address(new TransparentUpgradeableProxy(implementation, proxyAdmin, data));
 
-    MgdCompanyL2Sync(l1Proxy).setPublicKey(MGDSigner.addr);
-    MgdCompanyL2Sync(l2Proxy).setPublicKey(MGDSigner.addr);
+    MgdCompanyL2Sync(l1mgdCompany).setPublicKey(MGDSigner.addr);
+    MgdCompanyL2Sync(l2mgdCompany).setPublicKey(MGDSigner.addr);
 
-    MgdCompanyL2Sync(l1Proxy).setValidator(Bob.addr, true);
-    MgdCompanyL2Sync(l2Proxy).setValidator(Bob.addr, true);
+    MgdCompanyL2Sync(l1mgdCompany).setValidator(Bob.addr, true);
+    MgdCompanyL2Sync(l2mgdCompany).setValidator(Bob.addr, true);
 
-    MgdCompanyL2Sync(l1Proxy).setMessenger(L1_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l1Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2Proxy); // localhost
+    MgdCompanyL2Sync(l1mgdCompany).setMessenger(L1_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l1mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2mgdCompany); // localhost
 
-    MgdCompanyL2Sync(l2Proxy).setMessenger(L2_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l2Proxy).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1Proxy); // localhost
-
-    deployCodeTo("MockCrossDomainMessenger.sol", L1_CROSSDOMAIN_MESSENGER);
-
-    deployCodeTo("MockCrossDomainMessenger.sol", L2_CROSSDOMAIN_MESSENGER);
-
+    MgdCompanyL2Sync(l2mgdCompany).setMessenger(L2_CROSSDOMAIN_MESSENGER);
+    MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1mgdCompany); // localhost
     vm.stopPrank();
   }
 
@@ -93,28 +62,28 @@ contract MGDCompanyTests is Test {
     bytes memory message = abi.encode("Hello World!");
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
-    emit SentMessage(l1Proxy, Alice.addr, message, nonce, 1_000_000);
+    emit SentMessage(l1mgdCompany, Alice.addr, message, nonce, 1_000_000);
     vm.prank(Alice.addr);
-    CDMessenger(L1_CROSSDOMAIN_MESSENGER).sendMessage(l1Proxy, message, 1_000_000);
+    CDMessenger(L1_CROSSDOMAIN_MESSENGER).sendMessage(l1mgdCompany, message, 1_000_000);
   }
 
   function test_calledByNoOwnerOrValidator(address foe) public {
     vm.assume(foe != Bob.addr && foe != Alice.addr && foe != address(0));
 
     uint256 deadline = block.timestamp + 1 days;
-    bytes memory signature = generate_signature(
+    bytes memory signature = generate_actionSignature(
       CrossAction.SetWhitelist, Charlie.addr, true, _TEST_CHAIN_ID, deadline, MGDSigner.privateKey
     );
 
     vm.expectRevert(MintGoldDustCompany.Unauthorized.selector);
     vm.prank(foe);
-    MgdCompanyL2Sync(l1Proxy).whitelistWithL2Sync(
+    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(
       Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
     );
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(foe);
-    MgdCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
+    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(
       Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
     );
   }
@@ -123,7 +92,7 @@ contract MGDCompanyTests is Test {
     vm.assume(artist != Bob.addr && artist != Alice.addr && artist != address(0));
 
     uint256 deadline = block.timestamp + 1 days;
-    bytes memory signature = generate_signature(
+    bytes memory signature = generate_actionSignature(
       CrossAction.SetWhitelist, artist, true, _TEST_CHAIN_ID, deadline, MGDSigner.privateKey
     );
     bytes memory sentCalldata =
@@ -133,22 +102,24 @@ contract MGDCompanyTests is Test {
       abi.encodeWithSelector(MgdCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
-    emit SentMessage(l2Proxy, l1Proxy, message, nonce, 1_000_000);
+    emit SentMessage(l2mgdCompany, l1mgdCompany, message, nonce, 1_000_000);
     vm.prank(Bob.addr);
-    MgdCompanyL2Sync(l1Proxy).whitelistWithL2Sync(artist, true, _TEST_CHAIN_ID, deadline, signature);
+    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(
+      artist, true, _TEST_CHAIN_ID, deadline, signature
+    );
 
-    assertEq(MgdCompanyL2Sync(l1Proxy).isArtistApproved(artist), true);
+    assertEq(MgdCompanyL2Sync(l1mgdCompany).isArtistApproved(artist), true);
 
     _receiveCrossAction(sentCalldata);
 
-    assertEq(MgdCompanyL2Sync(l2Proxy).isArtistApproved(artist), true);
+    assertEq(MgdCompanyL2Sync(l2mgdCompany).isArtistApproved(artist), true);
   }
 
   function test_setValidator(address validator) public {
     vm.assume(validator != Bob.addr && validator != Alice.addr && validator != address(0));
 
     uint256 deadline = block.timestamp + 1 days;
-    bytes memory signature = generate_signature(
+    bytes memory signature = generate_actionSignature(
       CrossAction.SetValidator, validator, true, _TEST_CHAIN_ID, deadline, MGDSigner.privateKey
     );
 
@@ -159,23 +130,23 @@ contract MGDCompanyTests is Test {
       abi.encodeWithSelector(MgdCompanyL2Sync.receiveL1Sync.selector, sentCalldata);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
-    emit SentMessage(l2Proxy, l1Proxy, message, nonce, 1_000_000);
+    emit SentMessage(l2mgdCompany, l1mgdCompany, message, nonce, 1_000_000);
     vm.prank(Alice.addr);
-    MgdCompanyL2Sync(l1Proxy).setValidatorWithL2Sync(
+    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(
       validator, true, _TEST_CHAIN_ID, deadline, signature
     );
 
-    assertEq(MgdCompanyL2Sync(l1Proxy).isAddressValidator(validator), true);
+    assertEq(MgdCompanyL2Sync(l1mgdCompany).isAddressValidator(validator), true);
     _receiveCrossAction(sentCalldata);
-    assertEq(MgdCompanyL2Sync(l2Proxy).isAddressValidator(validator), true);
+    assertEq(MgdCompanyL2Sync(l2mgdCompany).isAddressValidator(validator), true);
   }
 
   function _receiveCrossAction(bytes memory data) public {
     vm.startPrank(L2_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l2Proxy).receiveL1Sync(data);
+    MgdCompanyL2Sync(l2mgdCompany).receiveL1Sync(data);
   }
 
-  function generate_signature(
+  function generate_actionSignature(
     CrossAction action,
     address account,
     bool state,
@@ -188,9 +159,7 @@ contract MGDCompanyTests is Test {
     returns (bytes memory signature)
   {
     bytes32 digest =
-      MgdCompanyL2Sync(l1Proxy).getDigestToSign(action, account, state, chainId, deadline);
-
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivKey, digest);
-    return abi.encodePacked(r, s, v);
+      MgdCompanyL2Sync(l1mgdCompany).getDigestToSign(action, account, state, chainId, deadline);
+    return generate_packedSignature(digest, signerPrivKey);
   }
 }
