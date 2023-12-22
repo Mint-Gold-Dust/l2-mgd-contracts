@@ -64,9 +64,16 @@ abstract contract ERC1155Permit is ERC1155Allowance {
     return _PERMIT_TYPEHASH;
   }
 
+  /**
+   * @notice The domain separator used in the permit signature
+   */
+  function DOMAIN_SEPARATOR() public view returns (bytes32) {
+    return _domainSeparator();
+  }
+
   function getPermitDigest(
     address owner,
-    address spender,
+    address operator,
     uint256 tokenId,
     uint256 amount,
     uint256 nonce,
@@ -77,7 +84,7 @@ abstract contract ERC1155Permit is ERC1155Allowance {
     returns (bytes32 digest)
   {
     bytes32 structHash =
-      keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, tokenId, amount, nonce, deadline));
+      keccak256(abi.encode(_PERMIT_TYPEHASH, owner, operator, tokenId, amount, nonce, deadline));
     digest = _hashTypedData(structHash);
   }
 
