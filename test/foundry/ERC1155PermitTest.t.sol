@@ -50,16 +50,12 @@ contract ERC1155PermitTests is CommonSigners, BaseL2Constants, MgdTestConstants,
     company = MgdCompanyL2Sync(
       address(new TransparentUpgradeableProxy(companyImpl, proxyAdmin, companyInitData))
     );
-    console.log("here");
-
     company.whitelist(Bob.addr, true);
     bytes memory nftInitData = abi.encodeWithSelector(
       MintGoldDustERC1155.initializeChild.selector, address(company), _TOKEN_URI
     );
     nftImpl = address(new Mgd1155PE());
     nft = Mgd1155PE(address(new TransparentUpgradeableProxy(nftImpl, proxyAdmin, nftInitData)));
-    console.log("here2");
-
     vm.stopPrank();
   }
 
