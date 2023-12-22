@@ -14,6 +14,7 @@ abstract contract ERC1155Allowance {
   /// Custom Errors
   error ERC1155Allowance__spendAllowance_insufficient();
   error ERC1155Allowance__checkZeroAddress_notAllowed();
+  error ERC1155Allowance__checkTokenId_notZero();
 
   // keccak256(abi.encodePacked(owner,operator,tokenId)) => amount
   mapping(bytes32 => uint256) internal _allowance;
@@ -79,6 +80,7 @@ abstract contract ERC1155Allowance {
   {
     _checkZeroAddress(owner);
     _checkZeroAddress(operator);
+    _checkTokenId(tokenId);
     _allowance[_hashedOwnerSpenderTokenID(owner, operator, tokenId)] = amount;
     emit ApprovalByAmount(owner, operator, tokenId, amount);
   }
@@ -110,5 +112,12 @@ abstract contract ERC1155Allowance {
   /// @dev Revert if `addr` is zero
   function _checkZeroAddress(address addr) private pure {
     if (addr == address(0)) revert ERC1155Allowance__checkZeroAddress_notAllowed();
+  }
+
+  /// @dev Revert if unsigned `input` is greater than zero
+  function _checkTokenId(uint256 input) internal pure {
+    if (input == 0) {
+      revert ERC1155Allowance__checkTokenId_notZero();
+    }
   }
 }
