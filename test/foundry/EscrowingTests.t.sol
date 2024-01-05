@@ -31,6 +31,8 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   MgdCompanyL2Sync public company;
   address public companyOwner;
 
+  address public constant MOCK_L2_VOUCHER = 0x000000000000000000000000000000000000fafa;
+
   /// Local constants: mock data to mint NFTs
   string private constant _TOKEN_URI = "https://ipfs.nowhere.example/";
   uint256 private constant _ROYALTY_PERCENT = 10;
