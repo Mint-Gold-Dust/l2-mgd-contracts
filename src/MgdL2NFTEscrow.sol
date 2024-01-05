@@ -302,7 +302,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   /// @notice Sets the contract address of {MgdL2NFTVoucher} deployed in L2.
   /// @param newVoucher address of {MgdL2NFTVoucher} deployed in L2.
   function setVoucherL2(address newVoucher) external {
-    if (msg.sender != address(_mgdCompany)) {
+    if (msg.sender != _mgdCompany.owner()) {
       revert MgdL2NFTEscrow__setVoucherL2_notAllowed();
     }
     _setVoucherL2(newVoucher);

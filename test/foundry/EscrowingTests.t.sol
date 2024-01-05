@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import {console} from "forge-std/console.sol";
 import {CommonSigners} from "./utils/CommonSigners.t.sol";
-import {BaseL2Constants} from "./op-stack/BaseL2Constants.t.sol";
+import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 
 import {
@@ -19,6 +19,7 @@ import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
 import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.sol";
 import {MgdL2NFTEscrow, MgdL1MarketData} from "../../src/MgdL2NFTEscrow.sol";
+import {MgdL2NFTVoucher} from "../../src/MgdL2NFTVoucher.sol";
 
 contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   // Test events
@@ -104,12 +105,15 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     nft721.setEscrow(address(escrow));
     nft1155.setEscrow(address(escrow));
 
-    // 5.- Whitelist Bob as artist
+    // 5.- Set l2 voucher address in escrow
+    escrow.setVoucherL2(MOCK_L2_VOUCHER);
+
+    // 6.- Whitelist Bob as artist
     company.whitelist(Bob.addr, true);
 
     vm.stopPrank();
 
-    // 6.- Bob Mints some NFTs
+    // 7.- Bob Mints some NFTs
     vm.startPrank(Bob.addr);
     _1155tokenIdsOfBob.push(
       nft1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, _DEFAULT_AMOUNT, bytes(_MEMOIR))
@@ -174,12 +178,10 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     amounts[0] = halfDefaultAmount;
     amounts[1] = halfDefaultAmount;
 
-    // 1.- Bob tries transfering his NFTs to escrow using batch transfer
     vm.prank(Bob.addr);
     vm.expectRevert("ERC1155: transfer to non-ERC1155Receiver implementer");
     nft1155.safeBatchTransferFrom(Bob.addr, address(escrow), _1155tokenIdsOfBob, amounts, "");
 
-    // 2.- Check that Bob's NFTs are still in his possession
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
   }
@@ -191,8 +193,13 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     (uint256 voucherId, bytes32 blockHash) =
       generate_L1EscrowedIdentifier(address(nft721), tokenId, 1, Bob.addr, marketData);
 
-    // 1.- Bob transfers his NFTs to escrow
+    bytes memory message =
+      abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, true);
+    uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
+
     vm.prank(Bob.addr);
+    vm.expectEmit(true, false, false, true, L1_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(MOCK_L2_VOUCHER, address(escrow), message, nonce, 1_000_000);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit EnterEscrow(address(nft721), tokenId, 1, Bob.addr, blockHash, marketData, voucherId);
     nft721.safeTransferFrom(Bob.addr, address(escrow), tokenId);
@@ -207,8 +214,13 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
       address(nft1155), tokenId, halfDefaultAmount, Bob.addr, marketData
     );
 
-    // 1.- Bob transfers his NFTs to escrow
+    bytes memory message =
+      abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, true);
+    uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
+
     vm.prank(Bob.addr);
+    vm.expectEmit(true, false, false, true, L1_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(MOCK_L2_VOUCHER, address(escrow), message, nonce, 1_000_000);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit EnterEscrow(
       address(nft1155), tokenId, halfDefaultAmount, Bob.addr, blockHash, marketData, voucherId
