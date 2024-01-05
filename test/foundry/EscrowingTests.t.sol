@@ -18,9 +18,20 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
 import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.sol";
-import {MgdL2NFTEscrow} from "../../src/MgdL2NFTEscrow.sol";
+import {MgdL2NFTEscrow, MgdL1MarketData} from "../../src/MgdL2NFTEscrow.sol";
 
 contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
+  // Test events
+  event EnterEscrow(
+    address nftcontract,
+    uint256 indexed tokenId,
+    uint256 amount,
+    address indexed owner,
+    bytes32 blockHash,
+    MgdL1MarketData marketData,
+    uint256 indexed voucherId
+  );
+
   /// addresses
   address public proxyAdmin;
 
@@ -114,5 +125,128 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   function test_escrowIsSetInNFTs() public {
     assertEq(address(nft721.escrow()), address(escrow));
     assertEq(address(nft1155.escrow()), address(escrow));
+  }
+
+  function test_nft721TransferToEscrow() public {
+    // 0.- Check that Bob's NFTs are in his wallet
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), Bob.addr);
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), Bob.addr);
+
+    // 1.- Bob transfers his NFTs to escrow
+    vm.startPrank(Bob.addr);
+    nft721.transferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[0]);
+    nft721.safeTransferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[1]);
+    vm.stopPrank();
+
+    // 2.- Check that Bob's NFTs are in escrow
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), address(escrow));
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), address(escrow));
+  }
+
+  function test_nft1155TransferToEscrow() public {
+    uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
+    // 0.- Check that Bob's NFTs are in his wallet
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
+
+    // 1.- Bob transfers his NFTs to escrow
+    vm.startPrank(Bob.addr);
+    nft1155.safeTransferFrom(
+      Bob.addr, address(escrow), _1155tokenIdsOfBob[0], halfDefaultAmount, ""
+    );
+    nft1155.safeTransferFrom(
+      Bob.addr, address(escrow), _1155tokenIdsOfBob[1], halfDefaultAmount, ""
+    );
+    vm.stopPrank();
+
+    // 2.- Check that Bob's NFTs are in escrow
+    assertEq(nft1155.balanceOf(address(escrow), _1155tokenIdsOfBob[0]), halfDefaultAmount);
+    assertEq(nft1155.balanceOf(address(escrow), _1155tokenIdsOfBob[1]), halfDefaultAmount);
+  }
+
+  function test_nft1155UsingBatchTransferToEscrow() public {
+    uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
+    // 0.- Check that Bob's NFTs are in his wallet
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
+
+    uint256[] memory amounts = new uint256[](2);
+    amounts[0] = halfDefaultAmount;
+    amounts[1] = halfDefaultAmount;
+
+    // 1.- Bob tries transfering his NFTs to escrow using batch transfer
+    vm.prank(Bob.addr);
+    vm.expectRevert("ERC1155: transfer to non-ERC1155Receiver implementer");
+    nft1155.safeBatchTransferFrom(Bob.addr, address(escrow), _1155tokenIdsOfBob, amounts, "");
+
+    // 2.- Check that Bob's NFTs are still in his possession
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
+  }
+
+  function test_nft721TransferToEscrowEvent() public {
+    uint256 tokenId = _721tokenIdsOfBob[0];
+
+    MgdL1MarketData memory marketData = structure_tokenIdData(nft721.getTokenIdData(tokenId));
+    (uint256 voucherId, bytes32 blockHash) =
+      generate_L1EscrowedIdentifier(address(nft721), tokenId, 1, Bob.addr, marketData);
+
+    // 1.- Bob transfers his NFTs to escrow
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit EnterEscrow(address(nft721), tokenId, 1, Bob.addr, blockHash, marketData, voucherId);
+    nft721.safeTransferFrom(Bob.addr, address(escrow), tokenId);
+  }
+
+  function test_nft1155TransferToEscrowEvent() public {
+    uint256 tokenId = _1155tokenIdsOfBob[0];
+    uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
+
+    MgdL1MarketData memory marketData = structure_tokenIdData(nft1155.getTokenIdData(tokenId));
+    (uint256 voucherId, bytes32 blockHash) = generate_L1EscrowedIdentifier(
+      address(nft1155), tokenId, halfDefaultAmount, Bob.addr, marketData
+    );
+
+    // 1.- Bob transfers his NFTs to escrow
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit EnterEscrow(
+      address(nft1155), tokenId, halfDefaultAmount, Bob.addr, blockHash, marketData, voucherId
+    );
+    nft1155.safeTransferFrom(Bob.addr, address(escrow), tokenId, halfDefaultAmount, "");
+  }
+
+  function structure_tokenIdData(bytes memory tokenIdData)
+    private
+    pure
+    returns (MgdL1MarketData memory marketData)
+  {
+    (
+      marketData.artist,
+      marketData.hasCollabs,
+      marketData.tokenWasSold,
+      marketData.collabsQuantity,
+      marketData.primarySaleQuantityToSell,
+      marketData.royaltyPercent,
+      marketData.collabs,
+      marketData.collabsPercentage
+    ) = abi.decode(
+      tokenIdData, (address, bool, bool, uint40, uint40, uint256, address[4], uint256[5])
+    );
+  }
+
+  function generate_L1EscrowedIdentifier(
+    address nft,
+    uint256 tokenId,
+    uint256 amount,
+    address owner,
+    MgdL1MarketData memory marketData
+  )
+    private
+    view
+    returns (uint256 voucherId, bytes32 blockHash)
+  {
+    blockHash = blockhash(block.number);
+    voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 }
