@@ -55,6 +55,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   error MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
   error MgdL2NFTEscrow__releaseFromEscrow_useCreateAndReleaseFromEscrow();
   error MgdL2NFTEscrow__createAndReleaseFromEscrow_wrongInputs();
+  error MgdL2NFTEscrow__setVoucherL2_notAllowed();
 
   bytes4 private constant _EMPTY_BYTES4 = 0x00000000;
   uint256 private constant _REF_NUMBER =
@@ -161,7 +162,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     return redeemClearance[key];
   }
 
-  ///
+  /// @notice Releases NFT from escrow to owner.
   /// @param voucherId used while in L2
   /// @param nft contract address of NFT to release
   /// @param tokenId of NFT to  release
@@ -298,11 +299,17 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     // }
   }
 
-  /**
-   * ///@dev Returns signature v, r, s values.
-   *
-   * ///@param signature abi.encodePacked(r,s,v)
-   */
+  /// @notice Sets the contract address of {MgdL2NFTVoucher} deployed in L2.
+  /// @param newVoucher address of {MgdL2NFTVoucher} deployed in L2.
+  function setVoucherL2(address newVoucher) external {
+    if (msg.sender != _mgdCompany.owner()) {
+      revert MgdL2NFTEscrow__setVoucherL2_notAllowed();
+    }
+    _setVoucherL2(newVoucher);
+  }
+
+  /// @dev Returns signature v, r, s values.
+  /// @param signature abi.encodePacked(r,s,v)
   function _getSignatureValues(bytes memory signature)
     private
     pure
