@@ -168,7 +168,7 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     assertEq(nft1155.balanceOf(address(escrow), _1155tokenIdsOfBob[1]), halfDefaultAmount);
   }
 
-  function test_nft1155UsingBatchTransferToEscrow() public {
+  function test_nft1155UsingBatchTransferToEscrowReverts() public {
     uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
     // 0.- Check that Bob's NFTs are in his wallet
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
