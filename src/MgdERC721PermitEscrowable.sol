@@ -61,6 +61,20 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
     safeTransferFrom(from, to, tokenId, data);
   }
 
+  /// @dev Overriden to route to `safeTransferFrom` without `data` in order to handle escrowing with proper `data`.
+  function transfer(
+    address _from,
+    address _to,
+    uint256 _tokenId,
+    uint256
+  )
+    public
+    override
+    nonReentrant
+  {
+    safeTransferFrom(_from, _to, _tokenId);
+  }
+
   /**
    *
    * @param spender of this allowance
