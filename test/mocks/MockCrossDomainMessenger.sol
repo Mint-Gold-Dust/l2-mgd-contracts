@@ -23,11 +23,29 @@ contract MockCrossDomainMessenger {
    * @param value  ETH value sent along with the message to the recipient.
    */
   event SentMessageExtension1(address indexed sender, uint256 value);
+  /**
+   * @notice Emitted whenever a message is successfully relayed on this chain.
+   *
+   * @param msgHash Hash of the message that was relayed.
+   */
+  event RelayedMessage(bytes32 indexed msgHash);
+
+  /**
+   * @notice Emitted whenever a message fails to be relayed on this chain.
+   *
+   * @param msgHash Hash of the message that failed to be relayed.
+   */
+  event FailedRelayedMessage(bytes32 indexed msgHash);
 
   /**
    * @notice Current message version identifier.
    */
   uint16 public constant MESSAGE_VERSION = 1;
+
+  /**
+   * @notice Gas reserved for finalizing the execution of `relayMessage` after the safe call.
+   */
+  uint64 public constant RELAY_RESERVED_GAS = 40_000;
 
   /**
    * @notice Nonce for the next message to be sent, without the message version applied. Use the
@@ -57,12 +75,49 @@ contract MockCrossDomainMessenger {
     /**
      * Actions omitted to simplify mocking.
      */
-
     emit SentMessage(_target, msg.sender, _message, messageNonce(), _minGasLimit);
     emit SentMessageExtension1(msg.sender, msg.value);
 
     unchecked {
       ++msgNonce;
+    }
+  }
+
+  /**
+   * @notice Relays a message that was sent by the other CrossDomainMessenger contract. Can only
+   *         be executed via cross-chain call from the other messenger OR if the message was
+   *         already received once and is currently being replayed.
+   *
+   * @param _nonce       Nonce of the message being relayed.
+   * @param _sender      Address of the user who sent the message.
+   * @param _target      Address that the message is targeted at.
+   * @param _value       ETH value to send with the message.
+   * @param _minGasLimit Minimum amount of gas that the message can be executed with.
+   * @param _message     Message to send to the target.
+   */
+  function relayMessage(
+    uint256 _nonce,
+    address _sender,
+    address _target,
+    uint256 _value,
+    uint256 _minGasLimit,
+    bytes calldata _message
+  )
+    external
+    payable
+  {
+    /**
+     * Actions omitted to simplify mocking.
+     */
+    bytes32 versionedHash =
+      hashCrossDomainMessageV1(_nonce, _sender, _target, _value, _minGasLimit, _message);
+
+    bool success = call(_target, gasleft() - RELAY_RESERVED_GAS, _value, _message);
+
+    if (success) {
+      emit RelayedMessage(versionedHash);
+    } else {
+      emit FailedRelayedMessage(versionedHash);
     }
   }
 
@@ -91,5 +146,75 @@ contract MockCrossDomainMessenger {
       nonce := or(shl(240, _version), _nonce)
     }
     return nonce;
+  }
+
+  /**
+   * @notice Hashes a cross domain message based on the V1 (current) encoding.
+   *
+   * @param _nonce    Message nonce.
+   * @param _sender   Address of the sender of the message.
+   * @param _target   Address of the target of the message.
+   * @param _value    ETH value to send to the target.
+   * @param _gasLimit Gas limit to use for the message.
+   * @param _data     Data to send with the message.
+   *
+   * @return Hashed cross domain message.
+   */
+  function hashCrossDomainMessageV1(
+    uint256 _nonce,
+    address _sender,
+    address _target,
+    uint256 _value,
+    uint256 _gasLimit,
+    bytes memory _data
+  )
+    internal
+    pure
+    returns (bytes32)
+  {
+    return keccak256(
+      abi.encodeWithSignature(
+        "relayMessage(uint256,address,address,uint256,uint256,bytes)",
+        _nonce,
+        _sender,
+        _target,
+        _value,
+        _gasLimit,
+        _data
+      )
+    );
+  }
+
+  /**
+   * @notice Perform a low level call without copying any returndata
+   *
+   * @param _target   Address to call
+   * @param _gas      Amount of gas to pass to the call
+   * @param _value    Amount of value to pass to the call
+   * @param _calldata Calldata to pass to the call
+   */
+  function call(
+    address _target,
+    uint256 _gas,
+    uint256 _value,
+    bytes memory _calldata
+  )
+    internal
+    returns (bool)
+  {
+    bool _success;
+    assembly {
+      _success :=
+        call(
+          _gas, // gas
+          _target, // recipient
+          _value, // ether value
+          add(_calldata, 32), // inloc
+          mload(_calldata), // inlen
+          0, // outloc
+          0 // outlen
+        )
+    }
+    return _success;
   }
 }
