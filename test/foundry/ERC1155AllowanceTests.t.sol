@@ -16,7 +16,7 @@ import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
 import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.sol";
 
-contract ERC1155AllowanceTest is CommonSigners, BaseL2Constants, MgdTestConstants, Helpers {
+contract ERC1155AllowanceTests is CommonSigners, BaseL2Constants, MgdTestConstants, Helpers {
   event ApprovalByAmount(
     address indexed owner, address indexed operator, uint256 indexed id, uint256 amount
   );
