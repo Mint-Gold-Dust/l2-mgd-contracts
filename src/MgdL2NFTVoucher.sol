@@ -52,10 +52,7 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
   uint256[50] private __gap;
 
   modifier onlyCrossAuthorized() {
-    if (
-      msg.sender != address(messenger) && messenger.xDomainMessageSender() != escrowL1
-        && msg.sender != address(_mgdCompany)
-    ) {
+    if (msg.sender != address(messenger) && msg.sender != address(_mgdCompany)) {
       revert MgdL2NFTVoucher__onlyCrossAuthorized_notAllowed();
     }
     _;
