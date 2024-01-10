@@ -145,7 +145,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
   }
 
   function test_voucherCallerToclearEscrow(address foe) public {
-    vm.assume(foe != address(0));
+    vm.assume(foe != address(0) && foe != proxyAdmin);
     uint256 voucherId = 1234;
     if (foe != L2_CROSSDOMAIN_MESSENGER && foe != address(company)) {
       vm.prank(foe);

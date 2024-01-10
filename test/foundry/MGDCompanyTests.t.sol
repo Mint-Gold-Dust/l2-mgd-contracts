@@ -68,7 +68,7 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
   }
 
   function test_calledByNoOwnerOrValidator(address foe) public {
-    vm.assume(foe != Bob.addr && foe != Alice.addr && foe != address(0));
+    vm.assume(foe != Bob.addr && foe != Alice.addr && foe != address(0) && foe != proxyAdmin);
 
     uint256 deadline = block.timestamp + 1 days;
     bytes memory signature = generate_actionSignature(
