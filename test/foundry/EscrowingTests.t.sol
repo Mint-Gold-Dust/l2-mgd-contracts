@@ -212,7 +212,8 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     uint256 tokenId = _1155tokenIdsOfBob[0];
     uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
 
-    MgdL1MarketData memory marketData = structure_tokenIdData(nft1155.getTokenIdData(tokenId));
+    MgdL1MarketData memory marketData =
+      structure_tokenIdData(nft1155.getTokenIdData(tokenId, uint40(halfDefaultAmount)));
     (uint256 voucherId, bytes32 blockHash) = generate_L1EscrowedIdentifier(
       address(nft1155), tokenId, halfDefaultAmount, Bob.addr, marketData
     );

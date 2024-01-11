@@ -8,13 +8,17 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 import {MgdL2Voucher, MgdL1MarketData, L1VoucherData} from "./abstract/MgdL2Voucher.sol";
 import {MgdL2NFTEscrow} from "./MgdL2NFTEscrow.sol";
+import {
+  MintGoldDustMarketplace,
+  ManageSecondarySale
+} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 
 /// @title MgdL2NFTVoucher
 /// @notice This contract "Vouchers" are a representation of an NFT on ethereum mainnet.
 /// @dev This contract is meant to be deployed on L2s.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
+contract MgdL2NFTVoucher is MgdL2Voucher, ERC721Permit, Almost721Upgradeable {
   ///Events
   event L1NftMintClearance(uint256 indexed voucherId, bool state);
   event L1NftMinted(uint256 indexed voucherId);
@@ -121,6 +125,9 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
     delete mintCleared[voucherId];
 
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
+    if (marketData.mgdMarketPlaceData.length > 0) {
+      // TODO
+    }
     _voucherL1Data[voucherId] =
       L1VoucherData({nft: nft, tokenId: tokenId, representedAmount: representedAmount});
   }

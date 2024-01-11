@@ -9,6 +9,10 @@ import {
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {
+  MintGoldDustMarketplace,
+  ManageSecondarySale
+} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
 
 /**
@@ -161,29 +165,46 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
       }
     }
     tokenWasSold[tokenId] = marketData.tokenWasSold;
-    primarySaleQuantityToSold[tokenId] = marketData.primarySaleQuantityToSell;
+    primarySaleQuantityToSold[tokenId] += marketData.primarySaleQuantityToSell;
 
     emit EscrowUpdateMarketData(tokenId, marketData);
-  }
-
-  function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
-    // TODO safe number casting
-    data = abi.encode(
-      MgdL1MarketData({
-        artist: tokenIdArtist[tokenId],
-        hasCollabs: hasTokenCollaborators[tokenId],
-        tokenWasSold: tokenWasSold[tokenId],
-        collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
-        primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
-        royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
-        collabs: tokenCollaborators[tokenId],
-        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
-      })
-    );
   }
 
   function setEscrow(address escrow_) external isZeroAddress(escrow_) isowner {
     escrow = escrow_;
     emit SetEscrow(escrow_);
+  }
+
+  /**
+   * @notice Returns the data to escow for a given `tokenId`
+   * @param tokenId to get market data
+   */
+  function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
+    ManageSecondarySale memory msSale =
+      MintGoldDustMarketplace(mintGoldDustSetPriceAddress).getSecondarySale(address(this), tokenId);
+
+    data = abi.encode(
+      MgdL1MarketData({
+        artist: tokenIdArtist[tokenId],
+        hasCollabs: hasTokenCollaborators[tokenId],
+        tokenWasSold: tokenWasSold[tokenId],
+        collabsQuantity: _safeCastToUint40(tokenIdCollaboratorsQuantity[tokenId]),
+        primarySaleQuantityToSell: _safeCastToUint40(primarySaleQuantityToSold[tokenId]),
+        royaltyPercent: _safeCastToUint128(tokenIdRoyaltyPercent[tokenId]),
+        collabs: tokenCollaborators[tokenId],
+        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId],
+        mgdMarketPlaceData: abi.encode(msSale)
+      })
+    );
+  }
+
+  function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
+    require(value <= type(uint40).max, "Value exceeds uint40");
+    return uint40(value);
+  }
+
+  function _safeCastToUint128(uint256 value) internal pure returns (uint128) {
+    require(value <= type(uint128).max, "Value exceeds uint128");
+    return uint128(value);
   }
 }

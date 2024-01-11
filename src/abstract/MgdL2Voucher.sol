@@ -17,6 +17,7 @@ struct MgdL1MarketData {
   uint256 royaltyPercent;
   address[4] collabs;
   uint256[5] collabsPercentage;
+  bytes mgdMarketPlaceData;
 }
 
 struct L1VoucherData {
@@ -67,8 +68,8 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 
   MgdCompanyL2Sync internal _mgdCompany;
-  address private _mintGoldDustSetPrice;
-  address private _mintGoldDustMarketplaceAuction;
+  address internal _mintGoldDustSetPrice;
+  address internal _mintGoldDustMarketplaceAuction;
 
   // voucherId => bool isNative
   mapping(uint256 => bool) internal _natives;
@@ -170,7 +171,8 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
       primarySaleQuantityToSell: representedAmount,
       royaltyPercent: royalty,
       collabs: [address(0), address(0), address(0), address(0)],
-      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
+      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
+      mgdMarketPlaceData: bytes("")
     });
 
     uint256 voucherId =
@@ -260,11 +262,11 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   /// @dev This function must only be called by authorized marketplace related addresses.
   /// @param voucherId The ID of the token whose primary sale quantity needs to be updated.
   /// @param sold The amount sold that needs to be subtracted from the remaining quantity._mintGoldDustSetPrice
-  function updateprimarySaleQuantityToSell(uint256 voucherId, uint256 sold) external {
+  function updatePrimarySaleQuantityToSold(uint256 voucherId, uint256 sold) external {
     _checkMarketPlaceCaller(msg.sender);
     uint40 remaining = _voucherMarketData[voucherId].primarySaleQuantityToSell;
     if (remaining > 0) {
-      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - uint40(sold);
+      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - _safeCastToUint40(sold);
     }
   }
 
@@ -379,6 +381,11 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     returns (uint256 identifier)
   {
     identifier = uint256(keccak256(abi.encode(blockhash(block.number), tokenData)));
+  }
+
+  function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
+    require(value <= type(uint40).max, "Value exceeds uint40");
+    return uint40(value);
   }
 
   /// @dev Revert if `addr` is zero
