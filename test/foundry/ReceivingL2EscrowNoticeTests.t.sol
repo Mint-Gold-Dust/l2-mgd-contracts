@@ -5,6 +5,7 @@ import {console} from "forge-std/console.sol";
 import {CommonSigners} from "./utils/CommonSigners.t.sol";
 import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
+import {Helpers} from "./utils/Helpers.t.sol";
 
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
@@ -21,7 +22,7 @@ import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.
 import {MgdL2NFTEscrow, MgdL1MarketData} from "../../src/MgdL2NFTEscrow.sol";
 import {MgdL2NFTVoucher} from "../../src/MgdL2NFTVoucher.sol";
 
-contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTestConstants {
+contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTestConstants, Helpers {
   // Test events
   event L1NftMintClearance(uint256 indexed voucherId, bool state);
   event L1NftMinted(uint256 indexed voucherId);
@@ -250,39 +251,5 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     vm.expectEmit(true, false, false, true, address(l2voucher));
     emit L1NftMinted(voucherId);
     l2voucher.mintL1Nft(address(nft721), tokenId, 1, Bob.addr, blockHash, marketData);
-  }
-
-  function structure_tokenIdData(bytes memory tokenIdData)
-    private
-    pure
-    returns (MgdL1MarketData memory marketData)
-  {
-    (
-      marketData.artist,
-      marketData.hasCollabs,
-      marketData.tokenWasSold,
-      marketData.collabsQuantity,
-      marketData.primarySaleQuantityToSell,
-      marketData.royaltyPercent,
-      marketData.collabs,
-      marketData.collabsPercentage
-    ) = abi.decode(
-      tokenIdData, (address, bool, bool, uint40, uint40, uint256, address[4], uint256[5])
-    );
-  }
-
-  function generate_L1EscrowedIdentifier(
-    address nft,
-    uint256 tokenId,
-    uint256 amount,
-    address owner,
-    MgdL1MarketData memory marketData
-  )
-    private
-    view
-    returns (uint256 voucherId, bytes32 blockHash)
-  {
-    blockHash = blockhash(block.number);
-    voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 }

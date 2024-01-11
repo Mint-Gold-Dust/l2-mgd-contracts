@@ -272,38 +272,4 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     // 3.- Check that Bob's NFTs are in escrow
     assertEq(nft1155.balanceOf(address(escrow), _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
   }
-
-  function structure_tokenIdData(bytes memory tokenIdData)
-    private
-    pure
-    returns (MgdL1MarketData memory marketData)
-  {
-    (
-      marketData.artist,
-      marketData.hasCollabs,
-      marketData.tokenWasSold,
-      marketData.collabsQuantity,
-      marketData.primarySaleQuantityToSell,
-      marketData.royaltyPercent,
-      marketData.collabs,
-      marketData.collabsPercentage
-    ) = abi.decode(
-      tokenIdData, (address, bool, bool, uint40, uint40, uint256, address[4], uint256[5])
-    );
-  }
-
-  function generate_L1EscrowedIdentifier(
-    address nft,
-    uint256 tokenId,
-    uint256 amount,
-    address owner,
-    MgdL1MarketData memory marketData
-  )
-    private
-    view
-    returns (uint256 voucherId, bytes32 blockHash)
-  {
-    blockHash = blockhash(block.number);
-    voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
-  }
 }
