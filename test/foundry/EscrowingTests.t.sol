@@ -203,43 +203,6 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
   }
 
-  struct Dumber {
-    uint256 tokenId;
-    address contractAddress;
-    bool isDumb;
-  }
-
-  struct BiggerDumber {
-    uint256 numba;
-    Dumber[] members;
-  }
-
-  function test_stupid2() public {
-    Dumber memory dumber1;
-    dumber1.tokenId = 1;
-    dumber1.contractAddress = address(0x1);
-    dumber1.isDumb = true;
-
-    Dumber memory dumber2;
-    dumber2.tokenId = 2;
-    dumber2.contractAddress = address(0x2);
-    dumber2.isDumb = false;
-
-    Dumber[] memory dumberArray = new Dumber[](1);
-    dumberArray[0] = dumber1;
-
-    BiggerDumber memory biggerDumber;
-    biggerDumber.numba = 1;
-    biggerDumber.members = dumberArray;
-
-    bytes memory encoded = abi.encode(biggerDumber);
-    console.logBytes(encoded);
-
-    (BiggerDumber memory decodedBiggerDumber) = abi.decode(encoded, (BiggerDumber));
-    assertEq(decodedBiggerDumber.numba, 1);
-    assertEq(dumber1.tokenId, decodedBiggerDumber.members[0].tokenId);
-  }
-
   function test_checknft721TransferToEscrowEvent() public {
     uint256 tokenId = _721tokenIdsOfBob[0];
 
