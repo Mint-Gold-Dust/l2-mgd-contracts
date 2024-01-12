@@ -7,6 +7,7 @@ import {ReentrancyGuardUpgradeable} from
 import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
+import {ManageSecondarySale} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 
 struct MgdL1MarketData {
   address artist;
@@ -17,7 +18,7 @@ struct MgdL1MarketData {
   uint256 royaltyPercent;
   address[4] collabs;
   uint256[5] collabsPercentage;
-  bytes mgdMarketPlaceData;
+  ManageSecondarySale secondarySaleData;
 }
 
 struct L1VoucherData {
@@ -172,7 +173,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
       royaltyPercent: royalty,
       collabs: [address(0), address(0), address(0), address(0)],
       collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
-      mgdMarketPlaceData: bytes("")
+      secondarySaleData: ManageSecondarySale(address(0), false, 0)
     });
 
     uint256 voucherId =

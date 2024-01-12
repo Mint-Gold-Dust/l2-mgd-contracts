@@ -212,7 +212,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
         royaltyPercent: _safeCastToUint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId],
-        mgdMarketPlaceData: abi.encode(msSale)
+        secondarySaleData: msSale
       })
     );
   }

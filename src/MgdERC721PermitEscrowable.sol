@@ -193,7 +193,7 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
         royaltyPercent: _safeCastToUint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
         collabsPercentage: tokenIdCollaboratorsPercentage[tokenId],
-        mgdMarketPlaceData: abi.encode(msSale)
+        secondarySaleData: msSale
       })
     );
   }

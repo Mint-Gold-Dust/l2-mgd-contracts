@@ -125,7 +125,7 @@ contract MgdL2NFTVoucher is MgdL2Voucher, ERC721Permit, Almost721Upgradeable {
     delete mintCleared[voucherId];
 
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
-    if (marketData.mgdMarketPlaceData.length > 0) {
+    if (marketData.secondarySaleData.owner != address(0)) {
       // TODO
     }
     _voucherL1Data[voucherId] =
