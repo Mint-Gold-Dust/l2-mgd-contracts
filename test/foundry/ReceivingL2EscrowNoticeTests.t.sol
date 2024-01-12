@@ -7,6 +7,8 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
+import {MockMgdMarketPlace, ManageSecondarySale} from "../mocks/MockMgdMarketPlace.sol";
+
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
   MintGoldDustERC1155
@@ -45,12 +47,18 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
 
   uint256[] private _721tokenIdsOfBob;
 
+  // Mocks
+  MockMgdMarketPlace public mockMarketPlace;
+
   function setUp() public {
+    // 0.- Deploying Mocks
+    mockMarketPlace = new MockMgdMarketPlace();
+
+    // 1.- Deploying company
     companyOwner = Alice.addr;
     vm.startPrank(companyOwner);
     proxyAdmin = address(new ProxyAdmin());
 
-    // 1.- Deploying company
     address companyImpl = address(new MgdCompanyL2Sync());
     bytes memory companyInitData = abi.encodeWithSelector(
       MintGoldDustCompany.initialize.selector,
@@ -109,6 +117,12 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     // 5.- Set Escrow in NFTs
     nft721.setEscrow(address(escrow));
     nft1155.setEscrow(address(escrow));
+
+    // 5.1 Set mock marketplace in NFTs
+    nft721.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft721.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
 
     // 6.- Set l2 voucher address in escrow
     escrow.setVoucherL2(address(l2voucher));

@@ -114,7 +114,7 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     nft721.setEscrow(address(escrow));
     nft1155.setEscrow(address(escrow));
 
-    // 4.1 Set mock marketplace in NFT
+    // 4.1 Set mock marketplace in NFTs
     nft721.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
     nft721.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
     nft1155.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
