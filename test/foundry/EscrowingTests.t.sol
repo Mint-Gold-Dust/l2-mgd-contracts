@@ -7,6 +7,8 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
+import {MockMgdMarketPlace, ManageSecondarySale} from "../mocks/MockMgdMarketPlace.sol";
+
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
   MintGoldDustERC1155
@@ -55,12 +57,18 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
   uint256[] private _721tokenIdsOfBob;
   uint256[] private _1155tokenIdsOfBob;
 
+  // Mocks
+  MockMgdMarketPlace public mockMarketPlace;
+
   function setUp() public {
+    // 0.- Deploying Mocks
+    mockMarketPlace = new MockMgdMarketPlace();
+
+    // 1.- Deploying company
     companyOwner = Alice.addr;
     vm.startPrank(companyOwner);
     proxyAdmin = address(new ProxyAdmin());
 
-    // 1.- Deploying company
     address companyImpl = address(new MgdCompanyL2Sync());
     bytes memory companyInitData = abi.encodeWithSelector(
       MintGoldDustCompany.initialize.selector,
@@ -106,6 +114,12 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     nft721.setEscrow(address(escrow));
     nft1155.setEscrow(address(escrow));
 
+    // 4.1 Set mock marketplace in NFT
+    nft721.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft721.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
+
     // 5.- Set l2 voucher address in escrow
     escrow.setVoucherL2(MOCK_L2_VOUCHER);
 
@@ -141,14 +155,14 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
 
     // 1.- Bob transfers his NFTs to escrow
     vm.startPrank(Bob.addr);
-    // nft721.transferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[0]);
-    // nft721.safeTransferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[1]);
+    nft721.transferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[0]);
+    nft721.safeTransferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[1]);
     nft721.transfer(Bob.addr, address(escrow), _721tokenIdsOfBob[2], 1);
     vm.stopPrank();
 
     // 2.- Check that Bob's NFTs are in escrow
-    // assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), address(escrow));
-    // assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), address(escrow));
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), address(escrow));
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), address(escrow));
     assertEq(nft721.ownerOf(_721tokenIdsOfBob[2]), address(escrow));
   }
 
@@ -187,6 +201,43 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
 
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenIdsOfBob[1]), _DEFAULT_AMOUNT);
+  }
+
+  struct Dumber {
+    uint256 tokenId;
+    address contractAddress;
+    bool isDumb;
+  }
+
+  struct BiggerDumber {
+    uint256 numba;
+    Dumber[] members;
+  }
+
+  function test_stupid2() public {
+    Dumber memory dumber1;
+    dumber1.tokenId = 1;
+    dumber1.contractAddress = address(0x1);
+    dumber1.isDumb = true;
+
+    Dumber memory dumber2;
+    dumber2.tokenId = 2;
+    dumber2.contractAddress = address(0x2);
+    dumber2.isDumb = false;
+
+    Dumber[] memory dumberArray = new Dumber[](1);
+    dumberArray[0] = dumber1;
+
+    BiggerDumber memory biggerDumber;
+    biggerDumber.numba = 1;
+    biggerDumber.members = dumberArray;
+
+    bytes memory encoded = abi.encode(biggerDumber);
+    console.logBytes(encoded);
+
+    (BiggerDumber memory decodedBiggerDumber) = abi.decode(encoded, (BiggerDumber));
+    assertEq(decodedBiggerDumber.numba, 1);
+    assertEq(dumber1.tokenId, decodedBiggerDumber.members[0].tokenId);
   }
 
   function test_checknft721TransferToEscrowEvent() public {

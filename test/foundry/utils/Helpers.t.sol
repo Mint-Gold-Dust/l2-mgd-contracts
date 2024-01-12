@@ -48,17 +48,6 @@ contract Helpers is Test {
     pure
     returns (MgdL1MarketData memory marketData)
   {
-    (
-      marketData.artist,
-      marketData.hasCollabs,
-      marketData.tokenWasSold,
-      marketData.collabsQuantity,
-      marketData.primarySaleQuantityToSell,
-      marketData.royaltyPercent,
-      marketData.collabs,
-      marketData.collabsPercentage
-    ) = abi.decode(
-      tokenIdData, (address, bool, bool, uint40, uint40, uint256, address[4], uint256[5])
-    );
+    (marketData) = abi.decode(tokenIdData, (MgdL1MarketData));
   }
 }
