@@ -199,6 +199,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     uint40 primarySaleToCarry = primarySaleRemaining > amountToEscrow
       ? primarySaleRemaining - amountToEscrow
       : primarySaleRemaining;
+    primarySaleQuantityToSold[tokenId] -= primarySaleToCarry;
     ManageSecondarySale memory msSale =
       MintGoldDustMarketplace(mintGoldDustSetPriceAddress).getSecondarySale(address(this), tokenId);
 
