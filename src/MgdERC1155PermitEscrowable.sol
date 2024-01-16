@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-import {MintGoldDustERC1155} from "mgd-v2-contracts/MintGoldDustERC1155.sol";
-import {ERC1155Permit, ERC1155Allowance} from "./abstract/ERC1155Permit.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ECDSA, ERC1155Allowance, ERC1155Permit} from "./abstract/ERC1155Permit.sol";
 import {
   ERC1155Upgradeable,
   IERC1155Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
-import {MgdCompanyL2Sync, ICrossDomainMessenger} from "./MgdCompanyL2Sync.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {
-  MintGoldDustMarketplace,
-  ManageSecondarySale
-} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
-import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
+import {ManageSecondarySale, MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
+import {MgdCompanyL2Sync, ICrossDomainMessenger} from "./MgdCompanyL2Sync.sol";
+import {MintGoldDustMarketplace} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {MintGoldDustERC1155} from "mgd-v2-contracts/MintGoldDustERC1155.sol";
 
 /**
  * @title MgdERC1155PermitEscrowable
@@ -72,7 +68,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
       _spendAllowance(from, operator, id, amount);
     }
     if (escrow != address(0) && to == escrow) {
-      data = getTokenIdData(id, _safeCastToUint40(amount));
+      data = _getTokenIdDataAndUpdateState(id, _safeCastToUint40(amount));
     }
     _safeTransferFrom(from, to, id, amount, data);
   }
@@ -195,11 +191,8 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     virtual
     returns (bytes memory data)
   {
-    uint40 primarySaleRemaining = _safeCastToUint40(primarySaleQuantityToSold[tokenId]);
-    uint40 primarySaleToCarry = primarySaleRemaining > amountToEscrow
-      ? primarySaleRemaining - amountToEscrow
-      : primarySaleRemaining;
-    primarySaleQuantityToSold[tokenId] -= primarySaleToCarry;
+    uint40 primarySaleToCarry = _getPrimarySaleToCarry(tokenId, amountToEscrow);
+
     ManageSecondarySale memory msSale =
       MintGoldDustMarketplace(mintGoldDustSetPriceAddress).getSecondarySale(address(this), tokenId);
 
@@ -216,6 +209,32 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
         secondarySaleData: msSale
       })
     );
+  }
+
+  function _getTokenIdDataAndUpdateState(
+    uint256 tokenId,
+    uint40 amountToEscrow
+  )
+    internal
+    returns (bytes memory data)
+  {
+    uint40 primarySaleToCarry = _getPrimarySaleToCarry(tokenId, amountToEscrow);
+    primarySaleQuantityToSold[tokenId] -= primarySaleToCarry;
+    return getTokenIdData(tokenId, amountToEscrow);
+  }
+
+  function _getPrimarySaleToCarry(
+    uint256 tokenId,
+    uint40 amountToEscrow
+  )
+    internal
+    view
+    returns (uint40)
+  {
+    uint40 primarySaleRemaining = _safeCastToUint40(primarySaleQuantityToSold[tokenId]);
+    return primarySaleRemaining > amountToEscrow
+      ? primarySaleRemaining - amountToEscrow
+      : primarySaleRemaining;
   }
 
   function _safeCastToUint40(uint256 value) internal pure returns (uint40) {

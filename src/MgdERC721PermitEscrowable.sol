@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-import {MintGoldDustERC721} from "mgd-v2-contracts/MintGoldDustERC721.sol";
-import {ERC721Permit, ECDSA} from "./abstract/ERC721Permit.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ECDSA, ERC721Permit} from "./abstract/ERC721Permit.sol";
 import {
   ERC721Upgradeable,
   IERC721Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {
-  MintGoldDustMarketplace,
-  ManageSecondarySale
-} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
-import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
+import {ManageSecondarySale, MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
+import {MintGoldDustERC721} from "mgd-v2-contracts/MintGoldDustERC721.sol";
+import {MintGoldDustMarketplace} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 
 /**
  * @title MgdERC721PermitEscrowable

@@ -1,33 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
+import {CommonCheckers} from "../utils/CommonCheckers.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
-import {ManageSecondarySale} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {MgdL1MarketData, L1VoucherData, TypeNFT} from "./VoucherDataTypes.sol";
 
-struct MgdL1MarketData {
-  address artist;
-  bool hasCollabs;
-  bool tokenWasSold;
-  uint40 collabsQuantity;
-  uint40 primarySaleQuantityToSell;
-  uint256 royaltyPercent;
-  address[4] collabs;
-  uint256[5] collabsPercentage;
-  ManageSecondarySale secondarySaleData;
-}
-
-struct L1VoucherData {
-  address nft;
-  uint256 tokenId;
-  uint256 representedAmount;
-}
-
-abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, ReentrancyGuardUpgradeable {
+abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, ReentrancyGuardUpgradeable {
   /// Events
 
   /// @dev Emit when minting.
@@ -53,38 +36,21 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     uint256 indexed voucherId, bool isERC721, address owner, address burner, uint256 amount
   );
 
-  event SetMgdERC721(address newMgdERC721);
-  event SetMgdERC1155(address newMgdERC1155);
-
   /// Custom Errors
-  error MgdL2Voucher__checkZeroAddress_notAllowed();
-  error MgdL2Voucher__checkGtZero_notZero();
   error MgdL2Voucher__executeSplitMintFlow_failedPercentSumCheck();
   error MgdL2Voucher__notAuthorized(string restriction);
   error MgdL2Voucher__checkRoyalty_moreThanMax();
   error MgdL2Voucher__splitMint_invalidArray();
   error MgdL2Voucher__collectorMint_disabledInL2();
 
-  uint256 private constant _REF_NUMBER =
-    0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
-
   MgdCompanyL2Sync internal _mgdCompany;
   address internal _mintGoldDustSetPrice;
   address internal _mintGoldDustMarketplaceAuction;
 
-  // voucherId => bool isNative
-  mapping(uint256 => bool) internal _natives;
   // voucherId => struct MgdL1MarketData
   mapping(uint256 => MgdL1MarketData) internal _voucherMarketData;
-  // voucherId => struct L1VoucherData
-  mapping(uint256 => L1VoucherData) internal _voucherL1Data;
 
   mapping(uint256 => bytes) internal _tokenIdMemoir;
-
-  // L1 reference addresses
-  address public escrowL1;
-  address public mgdERC721L1;
-  address public mgdERC1155L1;
 
   /**
    * @dev This empty reserved space is put in place to allow future upgrades to add new
@@ -109,18 +75,9 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   }
 
   /// @dev Initializes this contract
-  function __MgdL2NFT_init(
-    address mgdCompanyL2Sync,
-    address mgdERC721,
-    address mgdERC1155
-  )
-    internal
-    onlyInitializing
-  {
-    _checkZeroAddress(mgdCompanyL2Sync);
+  function __MgdL2BaseNFT_init(address mgdCompanyL2Sync) internal onlyInitializing {
+    CommonCheckers.checkZeroAddress(mgdCompanyL2Sync);
     _mgdCompany = MgdCompanyL2Sync(payable(mgdCompanyL2Sync));
-    _setMgdERC721(mgdERC721);
-    _setMgdERC1155(mgdERC1155);
     __ReentrancyGuard_init();
     __Pausable_init();
   }
@@ -129,14 +86,6 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
 
   function getVoucherMarketData(uint256 id) public view returns (MgdL1MarketData memory) {
     return _voucherMarketData[id];
-  }
-
-  function getVoucherL1Data(uint256 id) public view returns (L1VoucherData memory) {
-    return _voucherL1Data[id];
-  }
-
-  function isVoucherNative(uint256 id) public view returns (bool) {
-    return _natives[id];
   }
 
   function tokenIdMemoir(uint256 id) public view returns (bytes memory) {
@@ -157,35 +106,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     public
     payable
     virtual
-    isArtistWhitelisted(msg.sender)
-    whenNotPaused
-    returns (uint256)
-  {
-    _checkRoyalty(royalty);
-    _checkGtZero(representedAmount);
-
-    MgdL1MarketData memory marketData = MgdL1MarketData({
-      artist: msg.sender,
-      hasCollabs: false,
-      tokenWasSold: false,
-      collabsQuantity: 0,
-      primarySaleQuantityToSell: representedAmount,
-      royaltyPercent: royalty,
-      collabs: [address(0), address(0), address(0), address(0)],
-      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
-      secondarySaleData: ManageSecondarySale(address(0), false, 0)
-    });
-
-    uint256 voucherId =
-      _executeMintFlow(msg.sender, representedAmount, marketData, 0, tokenURI, memoir);
-    _natives[voucherId] = true;
-    _voucherL1Data[voucherId] = L1VoucherData({
-      nft: (representedAmount > 1 ? mgdERC1155L1 : mgdERC721L1),
-      tokenId: _REF_NUMBER,
-      representedAmount: representedAmount
-    });
-    return voucherId;
-  }
+    returns (uint256);
 
   /// @notice Mint a native voucher with collaborators that represents a new MintGoldDustNFT token in a L2.
   /// @dev Percentages in `collabsPercentage` must match the position of `collaborators` array.
@@ -206,17 +127,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   )
     public
     virtual
-    whenNotPaused
-    returns (uint256)
-  {
-    if (collabsPercentage.length != collaborators.length + 1) {
-      revert MgdL2Voucher__splitMint_invalidArray();
-    }
-    uint256 voucherId = mintNft(tokenURI, royalty, amount, memoir);
-    _executeSplitMintFlow(voucherId, collaborators, collabsPercentage);
-    _natives[voucherId] = true;
-    return voucherId;
-  }
+    returns (uint256);
 
   /// @notice Collector mint is disabled in MGD L2 contracts.
   /// @dev  Kept this function to throw error message when called
@@ -330,8 +241,8 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     uint256 totalPercentage;
 
     for (uint256 i = 0; i < collaborators.length; i++) {
-      _checkZeroAddress(collaborators[i]);
-      _checkGtZero(collabsPercentage[i]);
+      CommonCheckers.checkZeroAddress(collaborators[i]);
+      CommonCheckers.checkGtZero(collabsPercentage[i]);
 
       collabCount++;
       totalPercentage += collabsPercentage[i];
@@ -342,7 +253,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     }
 
     // Artist's percentage must be greater than zero
-    _checkGtZero(collabsPercentage[collabCount]);
+    CommonCheckers.checkGtZero(collabsPercentage[collabCount]);
 
     require(collabCount >= 1, "Add more than 1 owner!");
     require(collabCount < 5, "Add max 4!");
@@ -364,43 +275,9 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     );
   }
 
-  function _setMgdERC721(address newMgdERC721) internal {
-    _checkZeroAddress(newMgdERC721);
-    mgdERC721L1 = newMgdERC721;
-    emit SetMgdERC721(newMgdERC721);
-  }
-
-  function _setMgdERC1155(address newMgdERC1155) internal {
-    _checkZeroAddress(newMgdERC1155);
-    mgdERC1155L1 = newMgdERC1155;
-    emit SetMgdERC1155(newMgdERC1155);
-  }
-
-  function _generateL2NativeIdentifier(MgdL1MarketData memory tokenData)
-    internal
-    view
-    returns (uint256 identifier)
-  {
-    identifier = uint256(keccak256(abi.encode(blockhash(block.number), tokenData)));
-  }
-
   function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
     require(value <= type(uint40).max, "Value exceeds uint40");
     return uint40(value);
-  }
-
-  /// @dev Revert if `addr` is zero
-  function _checkZeroAddress(address addr) internal pure {
-    if (addr == address(0)) {
-      revert MgdL2Voucher__checkZeroAddress_notAllowed();
-    }
-  }
-
-  /// @dev Revert if unsigned `input` is greater than zero
-  function _checkGtZero(uint256 input) internal pure {
-    if (input == 0) {
-      revert MgdL2Voucher__checkGtZero_notZero();
-    }
   }
 
   /// @dev Revert if caller is not a marketplace

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-import {MgdL1MarketData} from "../abstract/MgdL2Voucher.sol";
+import {MgdL1MarketData} from "../voucher/VoucherDataTypes.sol";
 
 interface IEscrowableNFT {
   function permit(bytes calldata params) external payable;

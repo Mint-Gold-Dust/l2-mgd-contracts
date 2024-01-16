@@ -18,8 +18,11 @@ import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.s
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
 import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.sol";
-import {MgdL2NFTEscrow, MgdL1MarketData} from "../../src/MgdL2NFTEscrow.sol";
-import {MgdL2NFTVoucher, MgdL2Voucher} from "../../src/MgdL2NFTVoucher.sol";
+import {MgdL1MarketData, TypeNFT} from "../../src/voucher/VoucherDataTypes.sol";
+import {MgdL2NFTEscrow} from "../../src/MgdL2NFTEscrow.sol";
+import {MgdL2BaseNFT} from "../../src/voucher/MgdL2BaseNFT.sol";
+import {Mgd721L2Voucher} from "../../src/voucher/Mgd721L2Voucher.sol";
+import {Mgd1155L2Voucher} from "../../src/voucher/Mgd1155L2Voucher.sol";
 
 contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   /// addresses
@@ -28,7 +31,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   Mgd721PE public nft721;
   Mgd1155PE public nft1155;
   MgdL2NFTEscrow public escrow;
-  MgdL2NFTVoucher public l2voucher;
+  Mgd721L2Voucher public l2voucher;
 
   MgdCompanyL2Sync public company;
   address public companyOwner;
@@ -93,16 +96,16 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     );
 
     // 4.- Deploying L2 Voucher (pretended to be on a different chain to simplify tests)
-    address l2voucherImpl = address(new MgdL2NFTVoucher());
+    address l2voucherImpl = address(new Mgd721L2Voucher());
     bytes memory l2voucherInitData = abi.encodeWithSelector(
-      MgdL2NFTVoucher.initialize.selector,
+      Mgd721L2Voucher.initialize.selector,
       address(company),
       address(escrow),
       address(nft721),
       address(nft1155),
       L2_CROSSDOMAIN_MESSENGER
     );
-    l2voucher = MgdL2NFTVoucher(
+    l2voucher = Mgd721L2Voucher(
       address(new TransparentUpgradeableProxy(l2voucherImpl, proxyAdmin, l2voucherInitData))
     );
 
@@ -111,7 +114,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     nft1155.setEscrow(address(escrow));
 
     // 6.- Set l2 voucher address in escrow
-    escrow.setVoucherL2(address(l2voucher));
+    escrow.setVoucherL2(address(l2voucher), TypeNFT.ERC721);
 
     // 7.- Whitelist Bob as artist
     company.whitelist(Bob.addr, true);
@@ -159,7 +162,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   function test_collectorMintingMethodsReverts() public {
     // l2voucher.collectorMint
     vm.prank(Bob.addr);
-    vm.expectRevert(MgdL2Voucher.MgdL2Voucher__collectorMint_disabledInL2.selector);
+    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
     l2voucher.collectorMint(
       _TOKEN_URI, _ROYALTY_PERCENT, 1, Bob.addr, bytes(_MEMOIR), 1234, address(this)
     );
@@ -175,7 +178,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     collabsPercent[2] = 45e18;
 
     vm.prank(Bob.addr);
-    vm.expectRevert(MgdL2Voucher.MgdL2Voucher__collectorMint_disabledInL2.selector);
+    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
     l2voucher.collectorSplitMint(
       _TOKEN_URI,
       _ROYALTY_PERCENT,
