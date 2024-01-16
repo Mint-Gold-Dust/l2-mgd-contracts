@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
+import {CommonCheckers} from "./utils/CommonCheckers.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -8,8 +9,9 @@ import {IERC1155} from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {IEscrowableNFT} from "./interfaces/IEscrowableNFT.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {MgdL2NFTVoucher, MgdL1MarketData} from "./MgdL2NFTVoucher.sol";
+import {MgdL2BaseVoucher as MgdL2NFTVoucher} from "./voucher/MgdL2BaseVoucher.sol";
 import {MgdCompanyL2Sync} from "./MgdCompanyL2Sync.sol";
+import {MgdL1MarketData, TypeNFT} from "./voucher/VoucherDataTypes.sol";
 
 /// @title MGDL2EscrowNFT
 /// @notice Escrow contract that holds an NFT due to activity in a L2.
@@ -45,12 +47,11 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   /// @dev Emit when `_setMessenger()` is called.
   event SetMessenger(address messenger);
   /// @dev Emit when `_setVoucherL2()` is called.
-  event SetVoucherL2(address newVoucher);
+  event SetVoucherL2(address newVoucher, TypeNFT nftType);
 
   /// Custom Errors
 
   error MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed();
-  error MgdL2NFTEscrow__checkZeroAddress_notAllowed();
   error MgdL2NFTEscrow__onERC1155BatchReceived_notSupported();
   error MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
   error MgdL2NFTEscrow__releaseFromEscrow_useCreateAndReleaseFromEscrow();
@@ -69,7 +70,8 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
 
   ICrossDomainMessenger public messenger;
 
-  address public voucherL2;
+  address public voucher721L2;
+  address public voucher1155L2;
 
   /**
    * ///@dev This empty reserved space is put in place to allow future versions to add new
@@ -92,7 +94,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
 
   /// @dev Initializes the contract
   function initialize(address mgdCompanyL2Sync) external initializer {
-    _checkZeroAddress(mgdCompanyL2Sync);
+    CommonCheckers.checkZeroAddress(mgdCompanyL2Sync);
     _mgdCompany = MgdCompanyL2Sync(mgdCompanyL2Sync);
     ICrossDomainMessenger crossmessenger = _mgdCompany.messenger();
     _setMessenger(address(crossmessenger));
@@ -218,7 +220,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
       (uint256 voucherId, bytes32 blockHash) =
         _generateL1EscrowedIdentifier(address(nft), tokenId, 1, from, marketData);
 
-      _sendEscrowNoticeToL2(voucherId, true);
+      _sendEscrowNoticeToL2(voucherId, true, TypeNFT.ERC721);
 
       emit EnterEscrow(address(nft), tokenId, 1, from, blockHash, marketData, voucherId);
       return this.onERC721Received.selector;
@@ -249,7 +251,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
       (uint256 voucherId, bytes32 blockHash) =
         _generateL1EscrowedIdentifier(address(nft), tokenId, amount, from, marketData);
 
-      _sendEscrowNoticeToL2(voucherId, true);
+      _sendEscrowNoticeToL2(voucherId, true, TypeNFT.ERC1155);
 
       emit EnterEscrow(address(nft), tokenId, amount, from, blockHash, marketData, voucherId);
       return this.onERC1155Received.selector;
@@ -298,11 +300,11 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
 
   /// @notice Sets the contract address of {MgdL2NFTVoucher} deployed in L2.
   /// @param newVoucher address of {MgdL2NFTVoucher} deployed in L2.
-  function setVoucherL2(address newVoucher) external {
+  function setVoucherL2(address newVoucher, TypeNFT nftType) external {
     if (msg.sender != _mgdCompany.owner()) {
       revert MgdL2NFTEscrow__setVoucherL2_notAllowed();
     }
-    _setVoucherL2(newVoucher);
+    _setVoucherL2(newVoucher, nftType);
   }
 
   /// @dev Returns signature v, r, s values.
@@ -358,32 +360,30 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
       uint256(keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
-  function _sendEscrowNoticeToL2(uint256 voucherId, bool state) internal {
+  function _sendEscrowNoticeToL2(uint256 voucherId, bool state, TypeNFT nftType) internal {
     bytes memory message =
       abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, state);
-    messenger.sendMessage(voucherL2, message, 1000000);
+    address target = nftType == TypeNFT.ERC721 ? voucher721L2 : voucher1155L2;
+    messenger.sendMessage(target, message, 1000000);
   }
 
   /// @dev Sets the canonical cross domain messenger address between L1<>L2 or L2<>L1
   /// @param newMessenger canonical address between L1 or L2
   function _setMessenger(address newMessenger) internal {
-    _checkZeroAddress(newMessenger);
+    CommonCheckers.checkZeroAddress(newMessenger);
     messenger = ICrossDomainMessenger(newMessenger);
     emit SetMessenger(newMessenger);
   }
 
   /// @dev Sets the contract address of {MgdL2NFTVoucher} deployed in L2.
-  function _setVoucherL2(address newVoucher) internal {
-    _checkZeroAddress(newVoucher);
-    voucherL2 = newVoucher;
-    emit SetVoucherL2(newVoucher);
-  }
-
-  /// @dev Revert if `addr` is zero
-  function _checkZeroAddress(address addr) internal pure {
-    if (addr == address(0)) {
-      revert MgdL2NFTEscrow__checkZeroAddress_notAllowed();
+  function _setVoucherL2(address newVoucher, TypeNFT nftType) internal {
+    CommonCheckers.checkZeroAddress(newVoucher);
+    if (nftType == TypeNFT.ERC721) {
+      voucher721L2 = newVoucher;
+    } else {
+      voucher1155L2 = newVoucher;
     }
+    emit SetVoucherL2(newVoucher, nftType);
   }
 
   /// @dev Revert if `data` is zero length

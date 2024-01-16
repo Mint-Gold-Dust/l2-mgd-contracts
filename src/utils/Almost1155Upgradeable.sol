@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
+import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import {CommonCheckers} from "./CommonCheckers.sol";
 import {IERC1155ReceiverUpgradeable} from
   "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155ReceiverUpgradeable.sol";
-import {AddressUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/ContextUpgradeable.sol";
 
 /// @title Almost1155Upgradeable
 /// @notice A close replicate of OpenZeppelin's ERC1155 implementation removing
@@ -13,11 +13,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable//utils/Con
 /// @author Mint Gold Dust LLC
 /// @dev Refer to: OpenZeppelin Contracts (last updated v4.9.0) (token/ERC1155/ERC1155.sol)
 /// @custom:contact klvh@mintgolddust.io
-contract Almost1155Upgradeable is ContextUpgradeable {
-  /// Custom Errors
-  error Almost1155Upgradeable__checkZeroAddress_notAllowed();
-  error Almost1155Upgradeable__checkGtZero_notZero();
-
+contract Almost1155Upgradeable {
   using AddressUpgradeable for address;
   /**
    * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.
@@ -111,7 +107,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
    * @dev See {IERC1155-setApprovalForAll}.
    */
   function setApprovalForAll(address operator, bool approved) public virtual {
-    _setApprovalForAll(_msgSender(), operator, approved);
+    _setApprovalForAll(msg.sender, operator, approved);
   }
 
   /**
@@ -135,7 +131,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     virtual
   {
     require(
-      from == _msgSender() || isApprovedForAll(from, _msgSender()),
+      from == msg.sender || isApprovedForAll(from, msg.sender),
       "ERC1155: caller is not token owner or approved"
     );
     _safeTransferFrom(from, to, id, amount, data);
@@ -155,7 +151,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     virtual
   {
     require(
-      from == _msgSender() || isApprovedForAll(from, _msgSender()),
+      from == msg.sender || isApprovedForAll(from, msg.sender),
       "ERC1155: caller is not token owner or approved"
     );
     _safeBatchTransferFrom(from, to, ids, amounts, data);
@@ -185,7 +181,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
   {
     require(to != address(0), "ERC1155: transfer to the zero address");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
     uint256[] memory ids = _asSingletonArray(id);
     uint256[] memory amounts = _asSingletonArray(amount);
 
@@ -228,7 +224,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
     require(to != address(0), "ERC1155: transfer to the zero address");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
 
     _beforeTokenTransfer(operator, from, to, ids, amounts, data);
 
@@ -265,7 +261,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
   function _mint(address to, uint256 id, uint256 amount, bytes memory data) internal virtual {
     require(to != address(0), "ERC1155: mint to the zero address");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
     uint256[] memory ids = _asSingletonArray(id);
     uint256[] memory amounts = _asSingletonArray(amount);
 
@@ -302,7 +298,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     require(to != address(0), "ERC1155: mint to the zero address");
     require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
 
     _beforeTokenTransfer(operator, address(0), to, ids, amounts, data);
 
@@ -330,7 +326,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
   function _burn(address from, uint256 id, uint256 amount) internal virtual {
     require(from != address(0), "ERC1155: burn from the zero address");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
     uint256[] memory ids = _asSingletonArray(id);
     uint256[] memory amounts = _asSingletonArray(amount);
 
@@ -367,7 +363,7 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     require(from != address(0), "ERC1155: burn from the zero address");
     require(ids.length == amounts.length, "ERC1155: ids and amounts length mismatch");
 
-    address operator = _msgSender();
+    address operator = msg.sender;
 
     _beforeTokenTransfer(operator, from, address(0), ids, amounts, "");
 
@@ -515,19 +511,5 @@ contract Almost1155Upgradeable is ContextUpgradeable {
     array[0] = element;
 
     return array;
-  }
-
-  /// @notice Checks that `addr` is not zero
-  function _checkZeroAddress(address addr) internal pure {
-    if (addr == address(0)) {
-      revert Almost1155Upgradeable__checkZeroAddress_notAllowed();
-    }
-  }
-
-  /// @notice Checks that unsigned `input` is greater than zero
-  function _checkGtZero(uint256 input) internal pure {
-    if (input == 0) {
-      revert Almost1155Upgradeable__checkGtZero_notZero();
-    }
   }
 }

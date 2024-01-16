@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
+import {CommonCheckers} from "../utils/CommonCheckers.sol";
+
 /// @title ERC1155Allowance
 /// @author Mint Gold Dust LLC
 /// @notice Extension for more granular allowance in ERC1155.
@@ -13,7 +15,6 @@ abstract contract ERC1155Allowance {
 
   /// Custom Errors
   error ERC1155Allowance__spendAllowance_insufficient();
-  error ERC1155Allowance__checkZeroAddress_notAllowed();
   error ERC1155Allowance__checkTokenId_notZero();
 
   // keccak256(abi.encodePacked(owner,operator,tokenId)) => amount
@@ -78,8 +79,8 @@ abstract contract ERC1155Allowance {
     internal
     virtual
   {
-    _checkZeroAddress(owner);
-    _checkZeroAddress(operator);
+    CommonCheckers.checkZeroAddress(owner);
+    CommonCheckers.checkZeroAddress(operator);
     _checkTokenId(tokenId);
     _allowance[_hashedOwnerSpenderTokenID(owner, operator, tokenId)] = amount;
     emit ApprovalByAmount(owner, operator, tokenId, amount);
@@ -107,11 +108,6 @@ abstract contract ERC1155Allowance {
     returns (bytes32)
   {
     return keccak256(abi.encodePacked(owner, operator, tokenId));
-  }
-
-  /// @dev Revert if `addr` is zero
-  function _checkZeroAddress(address addr) private pure {
-    if (addr == address(0)) revert ERC1155Allowance__checkZeroAddress_notAllowed();
   }
 
   /// @dev Revert if unsigned `input` is greater than zero

@@ -20,9 +20,10 @@ import {
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from
   "../../src/utils/openzeppelin/TransparentUpgradeableProxy.sol";
+import {MgdL2BaseNFT, MgdL2BaseVoucher} from "../../src/voucher/MgdL2BaseVoucher.sol";
 import {MgdCompanyL2Sync, MintGoldDustCompany} from "../../src/MgdCompanyL2Sync.sol";
-import {MgdL2NFTEscrow, MgdL1MarketData} from "../../src/MgdL2NFTEscrow.sol";
-import {MgdL2NFTVoucher} from "../../src/MgdL2NFTVoucher.sol";
+import {MgdL1MarketData, TypeNFT} from "../../src/voucher/VoucherDataTypes.sol";
+import {MgdL2NFTEscrow} from "../../src/MgdL2NFTEscrow.sol";
 
 contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Helpers {
   // Test events
@@ -46,7 +47,8 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
   MgdCompanyL2Sync public company;
   address public companyOwner;
 
-  address public constant MOCK_L2_VOUCHER = 0x000000000000000000000000000000000000fafa;
+  address public constant MOCK_L2_721VOUCHER = 0x000000000000000000000000000000000000fafa;
+  address public constant MOCK_L2_1155VOUCHER = 0x000000000000000000000000000000000000fAfB;
 
   /// Local constants: mock data to mint NFTs
   string private constant _TOKEN_URI = "https://ipfs.nowhere.example/";
@@ -120,8 +122,9 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     nft1155.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
     nft1155.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
 
-    // 5.- Set l2 voucher address in escrow
-    escrow.setVoucherL2(MOCK_L2_VOUCHER);
+    // 5.- Set l2 voucher addresses in escrow
+    escrow.setVoucherL2(MOCK_L2_721VOUCHER, TypeNFT.ERC721);
+    escrow.setVoucherL2(MOCK_L2_1155VOUCHER, TypeNFT.ERC1155);
 
     // 6.- Whitelist Bob as artist
     company.whitelist(Bob.addr, true);
@@ -211,12 +214,12 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
       generate_L1EscrowedIdentifier(address(nft721), tokenId, 1, Bob.addr, marketData);
 
     bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, true);
+      abi.encodeWithSelector(MgdL2BaseVoucher.setL1NftMintClearance.selector, voucherId, true);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
     vm.expectEmit(true, false, false, true, L1_CROSSDOMAIN_MESSENGER);
-    emit SentMessage(MOCK_L2_VOUCHER, address(escrow), message, nonce, 1_000_000);
+    emit SentMessage(MOCK_L2_721VOUCHER, address(escrow), message, nonce, 1_000_000);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit EnterEscrow(address(nft721), tokenId, 1, Bob.addr, blockHash, marketData, voucherId);
     nft721.safeTransferFrom(Bob.addr, address(escrow), tokenId);
@@ -233,12 +236,12 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     );
 
     bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTVoucher.setL1NftMintClearance.selector, voucherId, true);
+      abi.encodeWithSelector(MgdL2BaseVoucher.setL1NftMintClearance.selector, voucherId, true);
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
     vm.expectEmit(true, false, false, true, L1_CROSSDOMAIN_MESSENGER);
-    emit SentMessage(MOCK_L2_VOUCHER, address(escrow), message, nonce, 1_000_000);
+    emit SentMessage(MOCK_L2_1155VOUCHER, address(escrow), message, nonce, 1_000_000);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit EnterEscrow(
       address(nft1155), tokenId, halfDefaultAmount, Bob.addr, blockHash, marketData, voucherId
