@@ -7,6 +7,7 @@ import {ReentrancyGuardUpgradeable} from
 import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
+import {ManageSecondarySale} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 
 struct MgdL1MarketData {
   address artist;
@@ -17,6 +18,7 @@ struct MgdL1MarketData {
   uint256 royaltyPercent;
   address[4] collabs;
   uint256[5] collabsPercentage;
+  ManageSecondarySale secondarySaleData;
 }
 
 struct L1VoucherData {
@@ -55,20 +57,20 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   event SetMgdERC1155(address newMgdERC1155);
 
   /// Custom Errors
-  error MgdL2NFT__checkZeroAddress_notAllowed();
-  error MgdL2NFT__checkGtZero_notZero();
-  error MgdL2NFT__executeSplitMintFlow_failedPercentSumCheck();
-  error MgdL2NFT__notAuthorized(string restriction);
-  error MgdL2NFT__checkRoyalty_moreThanMax();
-  error MgdL2NFT__splitMint_invalidArray();
-  error MgdL2NFT__collectorMint_disabledInL2();
+  error MgdL2Voucher__checkZeroAddress_notAllowed();
+  error MgdL2Voucher__checkGtZero_notZero();
+  error MgdL2Voucher__executeSplitMintFlow_failedPercentSumCheck();
+  error MgdL2Voucher__notAuthorized(string restriction);
+  error MgdL2Voucher__checkRoyalty_moreThanMax();
+  error MgdL2Voucher__splitMint_invalidArray();
+  error MgdL2Voucher__collectorMint_disabledInL2();
 
   uint256 private constant _REF_NUMBER =
     0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 
   MgdCompanyL2Sync internal _mgdCompany;
-  address private _mintGoldDustSetPrice;
-  address private _mintGoldDustMarketplaceAuction;
+  address internal _mintGoldDustSetPrice;
+  address internal _mintGoldDustMarketplaceAuction;
 
   // voucherId => bool isNative
   mapping(uint256 => bool) internal _natives;
@@ -93,7 +95,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   /// @dev Revert if caller is the {mgdCompany.owner()}
   modifier isOwner() {
     if (msg.sender != _mgdCompany.owner()) {
-      revert MgdL2NFT__notAuthorized("owner");
+      revert MgdL2Voucher__notAuthorized("owner");
     }
     _;
   }
@@ -101,7 +103,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   /// @dev Revert if caller is not a whitelisted artist
   modifier isArtistWhitelisted(address _artistAddress) {
     if (!_mgdCompany.isArtistApproved(_artistAddress)) {
-      revert MgdL2NFT__notAuthorized("artist");
+      revert MgdL2Voucher__notAuthorized("artist");
     }
     _;
   }
@@ -170,7 +172,8 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
       primarySaleQuantityToSell: representedAmount,
       royaltyPercent: royalty,
       collabs: [address(0), address(0), address(0), address(0)],
-      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
+      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
+      secondarySaleData: ManageSecondarySale(address(0), false, 0)
     });
 
     uint256 voucherId =
@@ -207,7 +210,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     returns (uint256)
   {
     if (collabsPercentage.length != collaborators.length + 1) {
-      revert MgdL2NFT__splitMint_invalidArray();
+      revert MgdL2Voucher__splitMint_invalidArray();
     }
     uint256 voucherId = mintNft(tokenURI, royalty, amount, memoir);
     _executeSplitMintFlow(voucherId, collaborators, collabsPercentage);
@@ -231,7 +234,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     pure
     returns (uint256)
   {
-    revert MgdL2NFT__splitMint_invalidArray();
+    revert MgdL2Voucher__collectorMint_disabledInL2();
   }
 
   /// @notice Collector split mint is disabled in MGD L2 contracts.
@@ -252,7 +255,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     pure
     returns (uint256)
   {
-    revert MgdL2NFT__collectorMint_disabledInL2();
+    revert MgdL2Voucher__collectorMint_disabledInL2();
   }
 
   /// @notice Reduces the quantity of remaining items available for primary sale for a specific token.
@@ -260,11 +263,11 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
   /// @dev This function must only be called by authorized marketplace related addresses.
   /// @param voucherId The ID of the token whose primary sale quantity needs to be updated.
   /// @param sold The amount sold that needs to be subtracted from the remaining quantity._mintGoldDustSetPrice
-  function updateprimarySaleQuantityToSell(uint256 voucherId, uint256 sold) external {
+  function updatePrimarySaleQuantityToSold(uint256 voucherId, uint256 sold) external {
     _checkMarketPlaceCaller(msg.sender);
     uint40 remaining = _voucherMarketData[voucherId].primarySaleQuantityToSell;
     if (remaining > 0) {
-      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - uint40(sold);
+      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - _safeCastToUint40(sold);
     }
   }
 
@@ -349,7 +352,7 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     totalPercentage += collabsPercentage[collabCount];
 
     if (totalPercentage != 100e18) {
-      revert MgdL2NFT__executeSplitMintFlow_failedPercentSumCheck();
+      revert MgdL2Voucher__executeSplitMintFlow_failedPercentSumCheck();
     }
 
     _voucherMarketData[voucherId].collabsQuantity = collabCount + 1;
@@ -381,31 +384,36 @@ abstract contract MgdL2Voucher is Initializable, PausableUpgradeable, Reentrancy
     identifier = uint256(keccak256(abi.encode(blockhash(block.number), tokenData)));
   }
 
+  function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
+    require(value <= type(uint40).max, "Value exceeds uint40");
+    return uint40(value);
+  }
+
   /// @dev Revert if `addr` is zero
   function _checkZeroAddress(address addr) internal pure {
     if (addr == address(0)) {
-      revert MgdL2NFT__checkZeroAddress_notAllowed();
+      revert MgdL2Voucher__checkZeroAddress_notAllowed();
     }
   }
 
   /// @dev Revert if unsigned `input` is greater than zero
   function _checkGtZero(uint256 input) internal pure {
     if (input == 0) {
-      revert MgdL2NFT__checkGtZero_notZero();
+      revert MgdL2Voucher__checkGtZero_notZero();
     }
   }
 
   /// @dev Revert if caller is not a marketplace
   function _checkMarketPlaceCaller(address caller) internal view {
     if (caller != _mintGoldDustMarketplaceAuction || caller != _mintGoldDustSetPrice) {
-      revert MgdL2NFT__notAuthorized("marketplace");
+      revert MgdL2Voucher__notAuthorized("marketplace");
     }
   }
 
   /// @dev Revert if `royalty` percentage is greater than the max royalty percentage
   function _checkRoyalty(uint256 royalty) internal view {
     if (royalty > _mgdCompany.maxRoyalty()) {
-      revert MgdL2NFT__checkRoyalty_moreThanMax();
+      revert MgdL2Voucher__checkRoyalty_moreThanMax();
     }
   }
 }

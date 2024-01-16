@@ -79,10 +79,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   uint256[50] private __gap;
 
   modifier onlyCrossAuthorized() {
-    if (
-      msg.sender != address(messenger) && messenger.xDomainMessageSender() != voucherL2
-        && msg.sender != address(_mgdCompany)
-    ) {
+    if (msg.sender != address(messenger) && msg.sender != address(_mgdCompany)) {
       revert MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed();
     }
     _;

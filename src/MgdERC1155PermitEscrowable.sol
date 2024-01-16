@@ -11,6 +11,10 @@ import {MgdCompanyL2Sync, ICrossDomainMessenger} from "./MgdCompanyL2Sync.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {
+  MintGoldDustMarketplace,
+  ManageSecondarySale
+} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 import {MgdL1MarketData} from "./abstract/MgdL2Voucher.sol";
 
 /**
@@ -68,7 +72,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
       _spendAllowance(from, operator, id, amount);
     }
     if (escrow != address(0) && to == escrow) {
-      data = getTokenIdData(id);
+      data = getTokenIdData(id, _safeCastToUint40(amount));
     }
     _safeTransferFrom(from, to, id, amount, data);
   }
@@ -167,7 +171,7 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
       }
     }
     tokenWasSold[tokenId] = marketData.tokenWasSold;
-    primarySaleQuantityToSold[tokenId] = marketData.primarySaleQuantityToSell;
+    primarySaleQuantityToSold[tokenId] += marketData.primarySaleQuantityToSell;
 
     emit EscrowUpdateMarketData(tokenId, marketData);
   }
@@ -177,19 +181,50 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     emit SetEscrow(escrow_);
   }
 
-  function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
-    // TODO safe number casting
+  /**
+   * @notice Returns the data to escow for a given `tokenId` and `amountToEscrow`.
+   * @param tokenId to get market data
+   * @param amountToEscrow being sent
+   */
+  function getTokenIdData(
+    uint256 tokenId,
+    uint40 amountToEscrow
+  )
+    public
+    view
+    virtual
+    returns (bytes memory data)
+  {
+    uint40 primarySaleRemaining = _safeCastToUint40(primarySaleQuantityToSold[tokenId]);
+    uint40 primarySaleToCarry = primarySaleRemaining > amountToEscrow
+      ? primarySaleRemaining - amountToEscrow
+      : primarySaleRemaining;
+    primarySaleQuantityToSold[tokenId] -= primarySaleToCarry;
+    ManageSecondarySale memory msSale =
+      MintGoldDustMarketplace(mintGoldDustSetPriceAddress).getSecondarySale(address(this), tokenId);
+
     data = abi.encode(
       MgdL1MarketData({
         artist: tokenIdArtist[tokenId],
         hasCollabs: hasTokenCollaborators[tokenId],
         tokenWasSold: tokenWasSold[tokenId],
-        collabsQuantity: uint40(tokenIdCollaboratorsQuantity[tokenId]),
-        primarySaleQuantityToSell: uint40(primarySaleQuantityToSold[tokenId]),
-        royaltyPercent: uint128(tokenIdRoyaltyPercent[tokenId]),
+        collabsQuantity: _safeCastToUint40(tokenIdCollaboratorsQuantity[tokenId]),
+        primarySaleQuantityToSell: primarySaleToCarry,
+        royaltyPercent: _safeCastToUint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
-        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
+        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId],
+        secondarySaleData: msSale
       })
     );
+  }
+
+  function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
+    require(value <= type(uint40).max, "Value exceeds uint40");
+    return uint40(value);
+  }
+
+  function _safeCastToUint128(uint256 value) internal pure returns (uint128) {
+    require(value <= type(uint128).max, "Value exceeds uint128");
+    return uint128(value);
   }
 }

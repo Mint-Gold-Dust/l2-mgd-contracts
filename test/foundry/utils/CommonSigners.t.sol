@@ -9,12 +9,14 @@ contract CommonSigners is Test {
   VmSafe.Wallet public Alice;
   VmSafe.Wallet public Bob;
   VmSafe.Wallet public Charlie;
+  VmSafe.Wallet public David;
   VmSafe.Wallet public MGDSigner;
 
   constructor() {
     Alice = vm.createWallet("Alice");
     Bob = vm.createWallet("Bob");
     Charlie = vm.createWallet("Charlie");
+    David = vm.createWallet("David");
     MGDSigner = vm.createWallet("MgdSigner");
   }
 }

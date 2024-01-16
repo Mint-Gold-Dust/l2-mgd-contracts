@@ -2,16 +2,23 @@
 pragma solidity 0.8.18;
 
 import {Almost721Upgradeable} from "./utils/Almost721Upgradeable.sol";
+import {ERC721Permit, ECDSA} from "./abstract/ERC721Permit.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 import {MgdL2Voucher, MgdL1MarketData, L1VoucherData} from "./abstract/MgdL2Voucher.sol";
 import {MgdL2NFTEscrow} from "./MgdL2NFTEscrow.sol";
+import {
+  MintGoldDustMarketplace,
+  ManageSecondarySale
+} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
 
 /// @title MgdL2NFTVoucher
 /// @notice This contract "Vouchers" are a representation of an NFT on ethereum mainnet.
 /// @dev This contract is meant to be deployed on L2s.
 /// @author Mint Gold Dust LLC
 /// @custom:contact klvh@mintgolddust.io
-contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
+contract MgdL2NFTVoucher is MgdL2Voucher, ERC721Permit, Almost721Upgradeable {
   ///Events
   event L1NftMintClearance(uint256 indexed voucherId, bool state);
   event L1NftMinted(uint256 indexed voucherId);
@@ -118,6 +125,9 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
     delete mintCleared[voucherId];
 
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
+    if (marketData.secondarySaleData.owner != address(0)) {
+      // TODO
+    }
     _voucherL1Data[voucherId] =
       L1VoucherData({nft: nft, tokenId: tokenId, representedAmount: representedAmount});
   }
@@ -207,6 +217,48 @@ contract MgdL2NFTVoucher is Almost721Upgradeable, MgdL2Voucher {
     _burnVoucherAndClearData(voucherId);
 
     emit TokenBurned(voucherId, true, voucherData.artist, msg.sender, 1);
+  }
+
+  /**
+   *
+   * @param spender of this allowance
+   * @param tokenId to give allowance
+   * @param deadline of the signature
+   * @param v value of signature
+   * @param r value of signature
+   * @param s value of signature
+   */
+  function permit(
+    address spender,
+    uint256 tokenId,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  )
+    public
+    payable
+    override
+  {
+    require(_blockTimestamp() <= deadline, "Permit expired");
+
+    bytes32 digest = getPermitDigest(spender, tokenId, _getAndIncrementNonce(tokenId), deadline);
+    address owner = ownerOf(tokenId);
+
+    require(spender != owner, "ERC721Permit: approval to current owner");
+
+    if (Address.isContract(owner)) {
+      require(
+        IERC1271(owner).isValidSignature(digest, abi.encodePacked(r, s, v)) == 0x1626ba7e,
+        "Unauthorized"
+      );
+    } else {
+      address recoveredAddress = ECDSA.recover(digest, v, r, s);
+      require(recoveredAddress != address(0), "Invalid signature");
+      require(recoveredAddress == owner, "Unauthorized");
+    }
+
+    _approve(spender, tokenId);
   }
 
   function _executeMintFlow(

@@ -7,6 +7,8 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
+import {MockMgdMarketPlace, ManageSecondarySale} from "../mocks/MockMgdMarketPlace.sol";
+
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
   MintGoldDustERC1155
@@ -55,12 +57,18 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
   uint256[] private _721tokenIdsOfBob;
   uint256[] private _1155tokenIdsOfBob;
 
+  // Mocks
+  MockMgdMarketPlace public mockMarketPlace;
+
   function setUp() public {
+    // 0.- Deploying Mocks
+    mockMarketPlace = new MockMgdMarketPlace();
+
+    // 1.- Deploying company
     companyOwner = Alice.addr;
     vm.startPrank(companyOwner);
     proxyAdmin = address(new ProxyAdmin());
 
-    // 1.- Deploying company
     address companyImpl = address(new MgdCompanyL2Sync());
     bytes memory companyInitData = abi.encodeWithSelector(
       MintGoldDustCompany.initialize.selector,
@@ -106,6 +114,12 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     nft721.setEscrow(address(escrow));
     nft1155.setEscrow(address(escrow));
 
+    // 4.1 Set mock marketplace in NFTs
+    nft721.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft721.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustSetPriceAddress(address(mockMarketPlace));
+    nft1155.setMintGoldDustMarketplaceAuctionAddress(address(mockMarketPlace));
+
     // 5.- Set l2 voucher address in escrow
     escrow.setVoucherL2(MOCK_L2_VOUCHER);
 
@@ -141,14 +155,14 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
 
     // 1.- Bob transfers his NFTs to escrow
     vm.startPrank(Bob.addr);
-    // nft721.transferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[0]);
-    // nft721.safeTransferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[1]);
+    nft721.transferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[0]);
+    nft721.safeTransferFrom(Bob.addr, address(escrow), _721tokenIdsOfBob[1]);
     nft721.transfer(Bob.addr, address(escrow), _721tokenIdsOfBob[2], 1);
     vm.stopPrank();
 
     // 2.- Check that Bob's NFTs are in escrow
-    // assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), address(escrow));
-    // assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), address(escrow));
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[0]), address(escrow));
+    assertEq(nft721.ownerOf(_721tokenIdsOfBob[1]), address(escrow));
     assertEq(nft721.ownerOf(_721tokenIdsOfBob[2]), address(escrow));
   }
 
@@ -212,7 +226,8 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
     uint256 tokenId = _1155tokenIdsOfBob[0];
     uint256 halfDefaultAmount = _DEFAULT_AMOUNT / 2;
 
-    MgdL1MarketData memory marketData = structure_tokenIdData(nft1155.getTokenIdData(tokenId));
+    MgdL1MarketData memory marketData =
+      structure_tokenIdData(nft1155.getTokenIdData(tokenId, uint40(halfDefaultAmount)));
     (uint256 voucherId, bytes32 blockHash) = generate_L1EscrowedIdentifier(
       address(nft1155), tokenId, halfDefaultAmount, Bob.addr, marketData
     );
@@ -271,39 +286,5 @@ contract EscrowingTests is CommonSigners, BaseL2Constants, MgdTestConstants, Hel
 
     // 3.- Check that Bob's NFTs are in escrow
     assertEq(nft1155.balanceOf(address(escrow), _1155tokenIdsOfBob[0]), _DEFAULT_AMOUNT);
-  }
-
-  function structure_tokenIdData(bytes memory tokenIdData)
-    private
-    pure
-    returns (MgdL1MarketData memory marketData)
-  {
-    (
-      marketData.artist,
-      marketData.hasCollabs,
-      marketData.tokenWasSold,
-      marketData.collabsQuantity,
-      marketData.primarySaleQuantityToSell,
-      marketData.royaltyPercent,
-      marketData.collabs,
-      marketData.collabsPercentage
-    ) = abi.decode(
-      tokenIdData, (address, bool, bool, uint40, uint40, uint256, address[4], uint256[5])
-    );
-  }
-
-  function generate_L1EscrowedIdentifier(
-    address nft,
-    uint256 tokenId,
-    uint256 amount,
-    address owner,
-    MgdL1MarketData memory marketData
-  )
-    private
-    view
-    returns (uint256 voucherId, bytes32 blockHash)
-  {
-    blockHash = blockhash(block.number);
-    voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 }
