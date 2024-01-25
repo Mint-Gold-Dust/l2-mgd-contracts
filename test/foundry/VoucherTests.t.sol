@@ -31,7 +31,9 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   Mgd721PE public nft721;
   Mgd1155PE public nft1155;
   MgdL2NFTEscrow public escrow;
-  Mgd721L2Voucher public l2voucher;
+
+  Mgd721L2Voucher public l2voucher721;
+  Mgd1155L2Voucher public l2voucher1155;
 
   MgdCompanyL2Sync public company;
   address public companyOwner;
@@ -95,17 +97,30 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
       address(new TransparentUpgradeableProxy(escrowImpl, proxyAdmin, escrowInitData))
     );
 
-    // 4.- Deploying L2 Voucher (pretended to be on a different chain to simplify tests)
-    address l2voucherImpl = address(new Mgd721L2Voucher());
-    bytes memory l2voucherInitData = abi.encodeWithSelector(
+    // 4.- Deploying L2 Vouchers (pretending vouchers are on a different chain to simplify tests)
+    bytes memory l2voucherInitData;
+    // 4.1- 721 Voucher
+    address l2voucher721Impl = address(new Mgd721L2Voucher());
+    l2voucherInitData = abi.encodeWithSelector(
       Mgd721L2Voucher.initialize.selector,
       address(company),
       address(escrow),
       address(nft721),
+      L2_CROSSDOMAIN_MESSENGER
+    );
+    l2voucher721 = Mgd721L2Voucher(
+      address(new TransparentUpgradeableProxy(l2voucherImpl, proxyAdmin, l2voucherInitData))
+    );
+    // 4.2- 1155 Voucher
+    address l2voucher1155Impl = address(new Mgd1155L2Voucher());
+    l2voucherInitData = abi.encodeWithSelector(
+      Mgd1155L2Voucher.initialize.selector,
+      address(company),
+      address(escrow),
       address(nft1155),
       L2_CROSSDOMAIN_MESSENGER
     );
-    l2voucher = Mgd721L2Voucher(
+    l2voucher1155 = Mgd1155L2Voucher(
       address(new TransparentUpgradeableProxy(l2voucherImpl, proxyAdmin, l2voucherInitData))
     );
 
@@ -115,6 +130,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
 
     // 6.- Set l2 voucher address in escrow
     escrow.setVoucherL2(address(l2voucher), TypeNFT.ERC721);
+    escrow.setVoucherL2(address(l2voucher), TypeNFT.ERC1155);
 
     // 7.- Whitelist Bob as artist
     company.whitelist(Bob.addr, true);
@@ -129,19 +145,19 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
 
   function test_mintingNativeVoucherThatRepresents721() public {
     vm.prank(Bob.addr);
-    uint256 vId = l2voucher.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR));
+    uint256 vId = l2voucher721.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR));
     nativeVoucherIdFor721 = vId;
-    assertEq(l2voucher.ownerOf(vId), Bob.addr);
+    assertEq(l2voucher721.ownerOf(vId), Bob.addr);
   }
 
   function test_mintingNativeVoucherThatRepresents1155() public {
     vm.prank(Bob.addr);
-    uint256 vId = l2voucher.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 10, bytes(_MEMOIR));
+    uint256 vId = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 10, bytes(_MEMOIR));
     nativeVoucherIdFor1155 = vId;
-    assertEq(l2voucher.ownerOf(vId), Bob.addr);
+    assertEq(l2voucher1155.balanceOf(vId, Bob.addr), 10);
   }
 
-  function test_mintingNativeSplitMintedVoucher() public {
+  function test_mintingNativeSplitMinted721Voucher() public {
     address[] memory collabs = new address[](2);
     collabs[0] = Charlie.addr;
     collabs[1] = David.addr;
@@ -157,6 +173,24 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     );
     nativeSplitVoucherId = vId;
     assertEq(l2voucher.ownerOf(vId), Bob.addr);
+  }
+
+  function test_mintNativeSplitMinted1155Voucher() public {
+    address[] memory collabs = new address[](2);
+    collabs[0] = Charlie.addr;
+    collabs[1] = David.addr;
+
+    uint256[] memory collabsPercent = new uint256[](3);
+    collabsPercent[0] = 35e18;
+    collabsPercent[1] = 20e18;
+    collabsPercent[2] = 45e18;
+
+    vm.prank(Bob.addr);
+    uint256 vId = l2voucher.splitMint(
+      _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, 10, bytes(_MEMOIR)
+    );
+    nativeSplitVoucherId = vId;
+    assertEq(l2voucher.balanceOf(vId, Bob.addr), 10);
   }
 
   function test_collectorMintingMethodsReverts() public {
