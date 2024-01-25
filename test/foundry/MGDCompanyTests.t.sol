@@ -7,7 +7,7 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
-import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
+import {MintGoldDustCompany} from "mgd-v2-contracts/marketplace/MintGoldDustCompany.sol";
 import {MgdCompanyL2Sync, CrossAction} from "../../src/MgdCompanyL2Sync.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from

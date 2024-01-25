@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
-import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
+import {MintGoldDustCompany} from "mgd-v2-contracts/marketplace/MintGoldDustCompany.sol";
 import {MgdCompanyL2Sync, CrossAction} from "../../src/MgdCompanyL2Sync.sol";
 
 contract WhitelistL2Sync is Script {

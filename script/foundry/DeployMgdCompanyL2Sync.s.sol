@@ -3,7 +3,7 @@ pragma solidity 0.8.18;
 
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
-import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
+import {MintGoldDustCompany} from "mgd-v2-contracts/marketplace/MintGoldDustCompany.sol";
 import {MgdCompanyL2Sync} from "../../src/MgdCompanyL2Sync.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import {TransparentUpgradeableProxy} from

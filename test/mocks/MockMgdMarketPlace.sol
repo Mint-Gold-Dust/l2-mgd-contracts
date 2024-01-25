@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-import {ManageSecondarySale} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {ManagePrimarySale} from "mgd-v2-contracts/libraries/MgdMarketPlaceDataTypes.sol";
 
 contract MockMgdMarketPlace {
-  mapping(address => mapping(uint256 => ManageSecondarySale)) internal _isSecondarySale;
+  mapping(address => mapping(uint256 => ManagePrimarySale)) internal _isSecondarySale;
 
   function mockSetSecondarySale(
     address contractAddress,
     uint256 tokenId,
-    ManageSecondarySale memory secondarySale
+    ManagePrimarySale memory secondarySale
   )
     external
   {
@@ -32,7 +32,7 @@ contract MockMgdMarketPlace {
   )
     external
   {
-    _isSecondarySale[_contractAddress][_tokenId] = ManageSecondarySale(_owner, _sold, _amount);
+    _isSecondarySale[_contractAddress][_tokenId] = ManagePrimarySale(_owner, _sold, _amount);
   }
 
   function getSecondarySale(
@@ -41,7 +41,7 @@ contract MockMgdMarketPlace {
   )
     external
     view
-    returns (ManageSecondarySale memory)
+    returns (ManagePrimarySale memory)
   {
     return _isSecondarySale[contractAddress][tokenId];
   }

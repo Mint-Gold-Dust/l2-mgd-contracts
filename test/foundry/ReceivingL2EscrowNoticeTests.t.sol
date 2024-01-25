@@ -7,7 +7,7 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
-import {MockMgdMarketPlace, ManageSecondarySale} from "../mocks/MockMgdMarketPlace.sol";
+import {MockMgdMarketPlace, ManagePrimarySale} from "../mocks/MockMgdMarketPlace.sol";
 
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
@@ -279,7 +279,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     assertEq(savedMarketData.hasCollabs, marketData.hasCollabs);
     assertEq(savedMarketData.tokenWasSold, marketData.tokenWasSold);
     assertEq(savedMarketData.collabsQuantity, marketData.collabsQuantity);
-    assertEq(savedMarketData.primarySaleQuantityToSell, marketData.primarySaleQuantityToSell);
+    assertEq(savedMarketData.primarySaleL2QuantityToSell, marketData.primarySaleL2QuantityToSell);
     assertEq(savedMarketData.royaltyPercent, marketData.royaltyPercent);
     assertEq(savedMarketData.collabs[0], marketData.collabs[0]);
     assertEq(savedMarketData.collabs[1], marketData.collabs[1]);
@@ -323,7 +323,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     assertEq(savedMarketData.hasCollabs, marketData.hasCollabs);
     assertEq(savedMarketData.tokenWasSold, marketData.tokenWasSold);
     assertEq(savedMarketData.collabsQuantity, marketData.collabsQuantity);
-    assertEq(savedMarketData.primarySaleQuantityToSell, marketData.primarySaleQuantityToSell);
+    assertEq(savedMarketData.primarySaleL2QuantityToSell, marketData.primarySaleL2QuantityToSell);
     assertEq(savedMarketData.royaltyPercent, marketData.royaltyPercent);
     assertEq(savedMarketData.collabs[0], marketData.collabs[0]);
     assertEq(savedMarketData.collabs[1], marketData.collabs[1]);

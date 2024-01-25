@@ -7,7 +7,7 @@ import {BaseL2Constants, CDMessenger} from "./op-stack/BaseL2Constants.t.sol";
 import {MgdTestConstants} from "./utils/MgdTestConstants.t.sol";
 import {Helpers} from "./utils/Helpers.t.sol";
 
-import {MockMgdMarketPlace, ManageSecondarySale} from "../mocks/MockMgdMarketPlace.sol";
+import {MockMgdMarketPlace, ManagePrimarySale} from "../mocks/MockMgdMarketPlace.sol";
 
 import {
   MgdERC1155PermitEscrowable as Mgd1155PE,
