@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.18;
 
-import {MintGoldDustCompany} from "mgd-v2-contracts/MintGoldDustCompany.sol";
+import {MintGoldDustCompany} from "mgd-v2-contracts/marketplace/MintGoldDustCompany.sol";
 import {MgdEIP712L2Sync, CrossAction, ECDSAUpgradeable} from "./utils/MgdEIP712L2Sync.sol";
 import {ICrossDomainMessenger} from "./interfaces/ICrossDomainMessenger.sol";
 

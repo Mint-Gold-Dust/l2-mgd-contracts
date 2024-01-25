@@ -272,30 +272,6 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     returns (bytes4)
   {
     revert MgdL2NFTEscrow__onERC1155BatchReceived_notSupported();
-    // IERC1155 nft = IERC1155(msg.sender);
-    // uint256 len = ids.length;
-    // uint256 counted;
-    // MgdL1MarketData[] memory datas = abi.decode(data, (MgdL1MarketData[]));
-    // for (uint256 i = 0; i < len; i++) {
-    //   /**
-    //    * TODO confirm if the below check is safe, given there could be
-    //    * tokenIds of the same contract already in escrow.
-    //    */
-    //   if (nft.balanceOf(address(this), ids[i]) >= values[i]) {
-    //     (uint256 voucherId, bytes32 blockHash) =
-    //       _generateL1EscrowedIdentifier(address(nft), ids[i], values[i], from, datas[i]);
-
-    //     _sendEscrowNoticeToL2(voucherId, true);
-
-    //     emit EnterEscrow(address(nft), ids[i], values[i], from, blockHash, datas[i], voucherId);
-    //     counted++;
-    //   }
-    // }
-    // if (counted == len) {
-    //   return this.onERC1155Received.selector;
-    // } else {
-    //   return _EMPTY_BYTES4;
-    // }
   }
 
   /// @notice Sets the contract address of {MgdL2NFTVoucher} deployed in L2.

@@ -8,9 +8,9 @@ import {
   IERC721Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {ManageSecondarySale, MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
-import {MintGoldDustERC721} from "mgd-v2-contracts/MintGoldDustERC721.sol";
-import {MintGoldDustMarketplace} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
+import {MintGoldDustERC721} from "mgd-v2-contracts/marketplace/MintGoldDustERC721.sol";
+import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDustMarketplace.sol";
 
 /**
  * @title MgdERC721PermitEscrowable
@@ -57,7 +57,7 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
   {
     bytes memory data;
     if (escrow != address(0) && to == escrow) {
-      data = getTokenIdData(tokenId);
+      data = _getTokenIdDataAndUpdateState(tokenId, 1);
     }
     safeTransferFrom(from, to, tokenId, data);
   }
@@ -161,8 +161,8 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
         tokenIdCollaboratorsPercentage[tokenId] = marketData.collabsPercentage;
       }
     }
-    tokenWasSold[tokenId] = marketData.tokenWasSold;
-    primarySaleQuantityToSold[tokenId] += marketData.primarySaleQuantityToSell;
+    _tokenWasSold[tokenId] = marketData.tokenWasSold;
+    _primarySaleQuantityToSell[tokenId] += marketData.primarySaleL2QuantityToSell;
 
     emit EscrowUpdateMarketData(tokenId, marketData);
   }
@@ -177,22 +177,44 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
    * @param tokenId to get market data
    */
   function getTokenIdData(uint256 tokenId) public view virtual returns (bytes memory data) {
-    ManageSecondarySale memory msSale =
-      MintGoldDustMarketplace(mintGoldDustSetPriceAddress).getSecondarySale(address(this), tokenId);
-
     data = abi.encode(
       MgdL1MarketData({
         artist: tokenIdArtist[tokenId],
         hasCollabs: hasTokenCollaborators[tokenId],
-        tokenWasSold: tokenWasSold[tokenId],
+        tokenWasSold: _tokenWasSold[tokenId],
         collabsQuantity: _safeCastToUint40(tokenIdCollaboratorsQuantity[tokenId]),
-        primarySaleQuantityToSell: _safeCastToUint40(primarySaleQuantityToSold[tokenId]),
+        primarySaleL2QuantityToSell: _safeCastToUint40(_primarySaleQuantityToSell[tokenId]),
         royaltyPercent: _safeCastToUint128(tokenIdRoyaltyPercent[tokenId]),
         collabs: tokenCollaborators[tokenId],
-        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId],
-        secondarySaleData: msSale
+        collabsPercentage: tokenIdCollaboratorsPercentage[tokenId]
       })
     );
+  }
+
+  function _getTokenIdDataAndUpdateState(
+    uint256 tokenId,
+    uint40 amountToEscrow
+  )
+    internal
+    returns (bytes memory data)
+  {
+    data = getTokenIdData(tokenId);
+    uint40 primarySaleToCarry = _getPrimarySaleToCarry(tokenId, amountToEscrow);
+    _primarySaleQuantityToSell[tokenId] -= primarySaleToCarry;
+  }
+
+  function _getPrimarySaleToCarry(
+    uint256 tokenId,
+    uint40 amountToEscrow
+  )
+    internal
+    view
+    returns (uint40 primarySaleToCarry)
+  {
+    uint40 primarySaleRemaining = _safeCastToUint40(_primarySaleQuantityToSell[tokenId]);
+    primarySaleToCarry = primarySaleRemaining >= amountToEscrow
+      ? primarySaleRemaining - amountToEscrow
+      : primarySaleRemaining;
   }
 
   function _safeCastToUint40(uint256 value) internal pure returns (uint40) {

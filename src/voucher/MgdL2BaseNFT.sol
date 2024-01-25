@@ -176,9 +176,10 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @param sold The amount sold that needs to be subtracted from the remaining quantity._mintGoldDustSetPrice
   function updatePrimarySaleQuantityToSold(uint256 voucherId, uint256 sold) external {
     _checkMarketPlaceCaller(msg.sender);
-    uint40 remaining = _voucherMarketData[voucherId].primarySaleQuantityToSell;
+    uint40 remaining = _voucherMarketData[voucherId].primarySaleL2QuantityToSell;
     if (remaining > 0) {
-      _voucherMarketData[voucherId].primarySaleQuantityToSell = remaining - _safeCastToUint40(sold);
+      _voucherMarketData[voucherId].primarySaleL2QuantityToSell =
+        remaining - _safeCastToUint40(sold);
     }
   }
 

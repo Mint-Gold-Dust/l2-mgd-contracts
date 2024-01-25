@@ -3,12 +3,10 @@ pragma solidity 0.8.18;
 
 import {CommonCheckers} from "../utils/CommonCheckers.sol";
 import {ICrossDomainMessenger} from "../interfaces/ICrossDomainMessenger.sol";
-import {
-  L1VoucherData, ManageSecondarySale, MgdL1MarketData, TypeNFT
-} from "./VoucherDataTypes.sol";
+import {L1VoucherData, MgdL1MarketData, TypeNFT} from "./VoucherDataTypes.sol";
 import {MgdL2BaseNFT} from "./MgdL2BaseNFT.sol";
 import {MgdL2NFTEscrow} from "../MgdL2NFTEscrow.sol";
-import {MintGoldDustMarketplace} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDustMarketplace.sol";
 
 abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
   ///Events
@@ -129,9 +127,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     delete mintCleared[voucherId];
 
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
-    if (marketData.secondarySaleData.owner != address(0)) {
-      // TODO
-    }
+
     _voucherL1Data[voucherId] =
       L1VoucherData({nft: nft, tokenId: tokenId, representedAmount: representedAmount});
   }
@@ -159,11 +155,10 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
       hasCollabs: false,
       tokenWasSold: false,
       collabsQuantity: 0,
-      primarySaleQuantityToSell: representedAmount,
+      primarySaleL2QuantityToSell: representedAmount,
       royaltyPercent: royalty,
       collabs: [address(0), address(0), address(0), address(0)],
-      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
-      secondarySaleData: ManageSecondarySale(address(0), false, 0)
+      collabsPercentage: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)]
     });
 
     uint256 voucherId =

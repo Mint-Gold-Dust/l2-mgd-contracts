@@ -6,12 +6,10 @@ import {Almost1155Upgradeable} from "../utils/Almost1155Upgradeable.sol";
 import {ECDSA, ERC1155Allowance, ERC1155Permit} from "../abstract/ERC1155Permit.sol";
 import {ICrossDomainMessenger} from "../interfaces/ICrossDomainMessenger.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {
-  L1VoucherData, ManageSecondarySale, MgdL1MarketData, TypeNFT
-} from "./VoucherDataTypes.sol";
+import {L1VoucherData, MgdL1MarketData, TypeNFT} from "./VoucherDataTypes.sol";
 import {MgdL2BaseVoucher} from "./MgdL2BaseVoucher.sol";
 import {MgdL2NFTEscrow} from "../MgdL2NFTEscrow.sol";
-import {MintGoldDustMarketplace} from "mgd-v2-contracts/MintGoldDustMarketplace.sol";
+import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDustMarketplace.sol";
 
 /// @title Mgd1155L2Voucher
 /// @notice This contract "Vouchers" are a representation of a 1155 NFT on ethereum mainnet.
