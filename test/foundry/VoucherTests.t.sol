@@ -42,6 +42,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   string private constant _TOKEN_URI = "https://ipfs.nowhere.example/";
   uint256 private constant _ROYALTY_PERCENT = 10;
   string private constant _MEMOIR = "A memoir";
+  uint40 private constant _EDITIONS = 10;
 
   uint256[] private _721tokenIdsOfBob;
 
@@ -109,7 +110,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
       L2_CROSSDOMAIN_MESSENGER
     );
     l2voucher721 = Mgd721L2Voucher(
-      address(new TransparentUpgradeableProxy(l2voucherImpl, proxyAdmin, l2voucherInitData))
+      address(new TransparentUpgradeableProxy(l2voucher721Impl, proxyAdmin, l2voucherInitData))
     );
     // 4.2- 1155 Voucher
     address l2voucher1155Impl = address(new Mgd1155L2Voucher());
@@ -121,7 +122,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
       L2_CROSSDOMAIN_MESSENGER
     );
     l2voucher1155 = Mgd1155L2Voucher(
-      address(new TransparentUpgradeableProxy(l2voucherImpl, proxyAdmin, l2voucherInitData))
+      address(new TransparentUpgradeableProxy(l2voucher1155Impl, proxyAdmin, l2voucherInitData))
     );
 
     // 5.- Set Escrow in NFTs
@@ -129,8 +130,8 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     nft1155.setEscrow(address(escrow));
 
     // 6.- Set l2 voucher address in escrow
-    escrow.setVoucherL2(address(l2voucher), TypeNFT.ERC721);
-    escrow.setVoucherL2(address(l2voucher), TypeNFT.ERC1155);
+    escrow.setVoucherL2(address(l2voucher721), TypeNFT.ERC721);
+    escrow.setVoucherL2(address(l2voucher1155), TypeNFT.ERC1155);
 
     // 7.- Whitelist Bob as artist
     company.whitelist(Bob.addr, true);
@@ -152,9 +153,9 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
 
   function test_mintingNativeVoucherThatRepresents1155() public {
     vm.prank(Bob.addr);
-    uint256 vId = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 10, bytes(_MEMOIR));
+    uint256 vId = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, _EDITIONS, bytes(_MEMOIR));
     nativeVoucherIdFor1155 = vId;
-    assertEq(l2voucher1155.balanceOf(vId, Bob.addr), 10);
+    assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
   }
 
   function test_mintingNativeSplitMinted721Voucher() public {
@@ -168,11 +169,11 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     collabsPercent[2] = 45e18;
 
     vm.prank(Bob.addr);
-    uint256 vId = l2voucher.splitMint(
-      _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, 10, bytes(_MEMOIR)
+    uint256 vId = l2voucher721.splitMint(
+      _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, 1, bytes(_MEMOIR)
     );
     nativeSplitVoucherId = vId;
-    assertEq(l2voucher.ownerOf(vId), Bob.addr);
+    assertEq(l2voucher721.ownerOf(vId), Bob.addr);
   }
 
   function test_mintNativeSplitMinted1155Voucher() public {
@@ -186,18 +187,24 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     collabsPercent[2] = 45e18;
 
     vm.prank(Bob.addr);
-    uint256 vId = l2voucher.splitMint(
-      _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, 10, bytes(_MEMOIR)
+    uint256 vId = l2voucher1155.splitMint(
+      _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, _EDITIONS, bytes(_MEMOIR)
     );
     nativeSplitVoucherId = vId;
-    assertEq(l2voucher.balanceOf(vId, Bob.addr), 10);
+    assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
   }
 
   function test_collectorMintingMethodsReverts() public {
     // l2voucher.collectorMint
     vm.prank(Bob.addr);
     vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
-    l2voucher.collectorMint(
+    l2voucher721.collectorMint(
+      _TOKEN_URI, _ROYALTY_PERCENT, 1, Bob.addr, bytes(_MEMOIR), 1234, address(this)
+    );
+
+    vm.prank(Bob.addr);
+    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
+    l2voucher1155.collectorMint(
       _TOKEN_URI, _ROYALTY_PERCENT, 1, Bob.addr, bytes(_MEMOIR), 1234, address(this)
     );
 
@@ -213,7 +220,7 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
 
     vm.prank(Bob.addr);
     vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
-    l2voucher.collectorSplitMint(
+    l2voucher1155.collectorSplitMint(
       _TOKEN_URI,
       _ROYALTY_PERCENT,
       collabs,
