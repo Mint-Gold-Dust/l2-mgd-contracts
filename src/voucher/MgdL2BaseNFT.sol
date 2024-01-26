@@ -118,12 +118,12 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @param amount the quantity to be minted for this token.
   /// @param memoir for this mint
   function splitMint(
-    string calldata tokenURI,
+    string memory tokenURI,
     uint128 royalty,
-    address[] calldata collaborators,
-    uint256[] calldata collabsPercentage,
+    address[] memory collaborators,
+    uint256[] memory collabsPercentage,
     uint40 amount,
-    bytes calldata memoir
+    bytes memory memoir
   )
     public
     virtual
@@ -133,11 +133,11 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @dev  Kept this function to throw error message when called
   /// by other MGD v2-core unchanged contracts.
   function collectorMint(
-    string calldata,
+    string memory,
     uint256,
     uint256,
     address,
-    bytes calldata,
+    bytes memory,
     uint256,
     address
   )
@@ -152,13 +152,13 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @dev  Kept this function to throw error message when called
   /// by other MGD v2-core unchanged contracts.
   function collectorSplitMint(
-    string calldata,
+    string memory,
     uint256,
-    address[] calldata,
-    uint256[] calldata,
+    address[] memory,
+    uint256[] memory,
     uint256,
     address,
-    bytes calldata,
+    bytes memory,
     uint256,
     address
   )
@@ -231,8 +231,8 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
 
   function _executeSplitMintFlow(
     uint256 voucherId,
-    address[] calldata collaborators,
-    uint256[] calldata collabsPercentage
+    address[] memory collaborators,
+    uint256[] memory collabsPercentage
   )
     internal
     virtual

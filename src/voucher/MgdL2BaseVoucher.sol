@@ -171,12 +171,12 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
 
   /// @inheritdoc MgdL2BaseNFT
   function splitMint(
-    string calldata tokenURI,
+    string memory tokenURI,
     uint128 royalty,
-    address[] calldata collaborators,
-    uint256[] calldata collabsPercentage,
+    address[] memory collaborators,
+    uint256[] memory collabsPercentage,
     uint40 amount,
-    bytes calldata memoir
+    bytes memory memoir
   )
     public
     virtual
