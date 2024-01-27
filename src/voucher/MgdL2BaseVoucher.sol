@@ -201,7 +201,14 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
   /// @param voucherId to bridge
   /// @param amount of NFT to bridge
   /// @param receiver of the NFT on L1
-  function _redeemVoucherToL1(uint256 voucherId, uint256 amount, address receiver) internal virtual;
+  function _redeemVoucherToL1(
+    uint256 voucherId,
+    uint256 amount,
+    address receiver
+  )
+    internal
+    virtual
+    returns (uint256);
 
   /// @notice Allows an approved address or token owner to burn a voucher natively created in L2.
   /// @param voucherId The unique identifier for the token.

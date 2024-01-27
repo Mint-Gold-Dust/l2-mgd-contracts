@@ -121,8 +121,15 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
   }
 
   /// @notice Refer to {MgdL2BaseVoucher-_redeeemVoucherToL1()}
-  function redeemVoucherToL1(uint256 voucherId, uint256 amount, address receiver) public {
-    _redeemVoucherToL1(voucherId, amount, receiver);
+  function redeemVoucherToL1(
+    uint256 voucherId,
+    uint256 amount,
+    address receiver
+  )
+    public
+    returns (uint256)
+  {
+    return _redeemVoucherToL1(voucherId, amount, receiver);
   }
 
   /// @inheritdoc MgdL2BaseVoucher
@@ -133,6 +140,7 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
   )
     internal
     override
+    returns (uint256)
   {
     if (balanceOf(msg.sender, voucherId) < amount) {
       revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
@@ -165,6 +173,8 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       marketData,
       releaseKey
     );
+
+    return releaseKey;
   }
 
   /// @notice See {MgdL2BaseVoucher-_burnNativeVoucher()}

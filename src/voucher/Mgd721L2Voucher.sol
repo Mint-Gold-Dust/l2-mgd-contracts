@@ -97,12 +97,20 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
   }
 
   /// @notice Refer to {MgdL2BaseVoucher-_redeeemVoucherToL1()}
-  function redeemVoucherToL1(uint256 voucherId, address receiver) public {
-    _redeemVoucherToL1(voucherId, 1, receiver);
+  function redeemVoucherToL1(uint256 voucherId, address receiver) public returns (uint256) {
+    return _redeemVoucherToL1(voucherId, 1, receiver);
   }
 
   /// @inheritdoc MgdL2BaseVoucher
-  function _redeemVoucherToL1(uint256 voucherId, uint256, address receiver) internal override {
+  function _redeemVoucherToL1(
+    uint256 voucherId,
+    uint256,
+    address receiver
+  )
+    internal
+    override
+    returns (uint256)
+  {
     if (!_isApprovedOrOwner(msg.sender, voucherId)) {
       revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
     }
@@ -134,6 +142,8 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
       marketData,
       releaseKey
     );
+
+    return releaseKey;
   }
 
   /// @notice See {MgdL2BaseVolcher-burnNativeVoucher}
