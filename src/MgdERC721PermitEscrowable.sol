@@ -44,6 +44,33 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
    */
   uint256[50] private __gap;
 
+  /// @dev Overriden to route to `safeTransferFrom` without `data` in order to handle escrowing with proper `data`.
+  function transfer(
+    address from,
+    address to,
+    uint256 tokenId,
+    uint256
+  )
+    public
+    override
+    nonReentrant
+  {
+    safeTransferFrom(from, to, tokenId);
+  }
+
+  /// @dev Overriden to include `data` from `_getTokenIdData` to send when sending to `escrow` address.
+  /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
+  function transferFrom(
+    address from,
+    address to,
+    uint256 tokenId
+  )
+    public
+    override(ERC721Upgradeable, IERC721Upgradeable)
+  {
+    safeTransferFrom(from, to, tokenId);
+  }
+
   /// @dev Overriden to include `data` from `_getTokenIdData` to send when sending to `escrow` address.
   /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
   function safeTransferFrom(
@@ -60,20 +87,6 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
       data = _getTokenIdDataAndUpdateState(tokenId, 1);
     }
     safeTransferFrom(from, to, tokenId, data);
-  }
-
-  /// @dev Overriden to route to `safeTransferFrom` without `data` in order to handle escrowing with proper `data`.
-  function transfer(
-    address _from,
-    address _to,
-    uint256 _tokenId,
-    uint256
-  )
-    public
-    override
-    nonReentrant
-  {
-    safeTransferFrom(_from, _to, _tokenId);
   }
 
   /**
