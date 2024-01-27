@@ -57,6 +57,9 @@ contract Almost1155Upgradeable {
   // Mapping from account to operator approvals
   mapping(address => mapping(address => bool)) private _operatorApprovals;
 
+  // Mapping from token ID to totalSupply
+  mapping(uint256 => uint256) private _totalSupply;
+
   /**
    * @dev This empty reserved space is put in place to allow future versions to add new
    * variables without shifting down storage in the inheritance chain.
@@ -101,6 +104,14 @@ contract Almost1155Upgradeable {
     }
 
     return batchBalances;
+  }
+
+  /**
+   * @dev Returns the total supply of token `id`
+   * @param id to get supply
+   */
+  function totalSupply(uint256 id) public view virtual returns (uint256) {
+    return _totalSupply[id];
   }
 
   /**
@@ -268,6 +279,8 @@ contract Almost1155Upgradeable {
     _beforeTokenTransfer(operator, address(0), to, ids, amounts, data);
 
     _balances[id][to] += amount;
+    _totalSupply[id] += amount;
+
     emit TransferSingle(operator, address(0), to, id, amount);
 
     _afterTokenTransfer(operator, address(0), to, ids, amounts, data);
@@ -304,6 +317,7 @@ contract Almost1155Upgradeable {
 
     for (uint256 i = 0; i < ids.length; i++) {
       _balances[ids[i]][to] += amounts[i];
+      _totalSupply[ids[i]] += amounts[i];
     }
 
     emit TransferBatch(operator, address(0), to, ids, amounts);
@@ -336,6 +350,7 @@ contract Almost1155Upgradeable {
     require(fromBalance >= amount, "ERC1155: burn amount exceeds balance");
     unchecked {
       _balances[id][from] = fromBalance - amount;
+      _totalSupply[id] -= amount;
     }
 
     emit TransferSingle(operator, from, address(0), id, amount);
@@ -375,6 +390,7 @@ contract Almost1155Upgradeable {
       require(fromBalance >= amount, "ERC1155: burn amount exceeds balance");
       unchecked {
         _balances[id][from] = fromBalance - amount;
+        _totalSupply[id] -= amount;
       }
     }
 
