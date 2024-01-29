@@ -96,15 +96,47 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     safeTransferFrom(from, to, voucherId, "");
   }
 
+  /// @inheritdoc MgdL2BaseVoucher
+  function mintL1Nft(
+    uint256 tokenId,
+    uint256, /*representedAmount*/
+    address owner,
+    bytes32 blockHash,
+    MgdL1MarketData memory marketData
+  )
+    public
+    override
+  {
+    return super.mintL1Nft(tokenId, 1, owner, blockHash, marketData);
+  }
+
+  /// @inheritdoc MgdL2BaseVoucher
+  function mintNft(
+    string memory tokenURI,
+    uint256 royalty,
+    uint40, /* representedAmount */
+    bytes memory memoir
+  )
+    public
+    payable
+    override
+    isArtistWhitelisted(msg.sender)
+    whenNotPaused
+    returns (uint256)
+  {
+    return super.mintNft(tokenURI, royalty, 1, memoir);
+  }
+
   /// @notice Refer to {MgdL2BaseVoucher-_redeeemVoucherToL1()}
   function redeemVoucherToL1(uint256 voucherId, address receiver) public returns (uint256) {
-    return _redeemVoucherToL1(voucherId, 1, receiver);
+    return _redeemVoucherToL1(msg.sender, voucherId, 1, receiver);
   }
 
   /// @inheritdoc MgdL2BaseVoucher
   function _redeemVoucherToL1(
+    address,
     uint256 voucherId,
-    uint256,
+    uint40,
     address receiver
   )
     internal

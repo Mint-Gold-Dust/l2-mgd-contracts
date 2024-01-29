@@ -116,6 +116,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     MgdL1MarketData memory marketData
   )
     public
+    virtual
   {
     address nft = mgdNFTL1;
     uint256 voucherId =
@@ -123,11 +124,8 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     if (!mintCleared[voucherId]) {
       revert MgdL2BaseVoucher__mintL1Nft_notClearedOrAlreadyMinted();
     }
-
     delete mintCleared[voucherId];
-
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
-
     _voucherL1Data[voucherId] =
       L1VoucherData({nft: nft, tokenId: tokenId, representedAmount: representedAmount});
   }
@@ -198,12 +196,14 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
   /// if `voucherId` is a L2 native it will bring the NFT into existente in Ethereum.
   /// @dev CAUTION! This process can take up to 7 days to complete due to L2 rollup-requirements.
   /// @dev CAUTION! Ensure the `receiver` address is an accesible acount in Ethereum
+  /// @param owner of the voucher
   /// @param voucherId to bridge
   /// @param amount of NFT to bridge
   /// @param receiver of the NFT on L1
   function _redeemVoucherToL1(
+    address owner,
     uint256 voucherId,
-    uint256 amount,
+    uint40 amount,
     address receiver
   )
     internal

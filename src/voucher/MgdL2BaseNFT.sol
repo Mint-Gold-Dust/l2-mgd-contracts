@@ -97,6 +97,11 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @param royalty percentage to be applied for this NFT secondary sales.
   /// @param representedAmount editions adjoined to this voucher.
   /// @param memoir for this mint
+  /// @dev Requirements:
+  /// - Only whitelisted artists can mint.
+  /// - `royalty` percentage must be less than or equal to the max royalty percentage.
+  /// - `representedAmount` must be greater than zero.
+  /// - 721 voucher contract can only pass `representedAmount` equals 1.
   function mintNft(
     string memory tokenURI,
     uint256 royalty,

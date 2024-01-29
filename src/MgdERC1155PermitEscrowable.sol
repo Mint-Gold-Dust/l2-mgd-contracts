@@ -228,9 +228,8 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     returns (uint40 primarySaleToCarry)
   {
     uint40 primarySaleRemaining = _safeCastToUint40(_primarySaleQuantityToSell[tokenId]);
-    primarySaleToCarry = primarySaleRemaining >= amountToEscrow
-      ? primarySaleRemaining - amountToEscrow
-      : primarySaleRemaining;
+    primarySaleToCarry =
+      primarySaleRemaining >= amountToEscrow ? amountToEscrow : primarySaleRemaining;
   }
 
   function _safeCastToUint40(uint256 value) internal pure returns (uint40) {
