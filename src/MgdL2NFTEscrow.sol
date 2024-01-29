@@ -164,19 +164,20 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   /// @notice Releases NFT from escrow to owner.
   /// @param voucherId used while in L2
   /// @param nft contract address of NFT to release
-  /// @param tokenId of NFT to  release
+  /// @param tokenId of NFT to release
   /// @param amount of editions of NFT to release
-  /// @param owner who will receive NFT
+  /// @param receiver who will receive NFT
   /// @param blockHash when {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called in L2
   /// @param marketData  latest status when {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called in L2
   /// @param tokenURI ?required only when releasing a L2 natively created voucher
   /// @param memoir ?optional only when releasing a L2 natively created voucher (suggest to use the same as L2)
+  /// @dev For L2 natively created vouchers, the `tokenId` must be `_REF_NUMBER` and a `tokenURI` must be passed.
   function releaseFromEscrow(
     uint256 voucherId,
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     bytes32 blockHash,
     MgdL1MarketData calldata marketData,
     string calldata tokenURI,
@@ -185,22 +186,23 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     external
   {
     uint256 key =
-      _generateL1RedeemKey(voucherId, nft, tokenId, amount, owner, blockHash, marketData);
+      _generateL1RedeemKey(voucherId, nft, tokenId, amount, receiver, blockHash, marketData);
     if (!redeemClearance[key]) {
       revert MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
     }
     uint256 newTokenId;
     if (tokenId == _REF_NUMBER) {
       require(bytes(tokenURI).length > 0, "pass tokenURI");
-      newTokenId = IEscrowableNFT(nft).mintNft(tokenURI, marketData.royaltyPercent, amount, memoir);
+      newTokenId =
+        IEscrowableNFT(nft).mintFromL2Native(receiver, amount, marketData, tokenURI, memoir);
     }
-    if (newTokenId > 0) {
-      IEscrowableNFT(nft).transfer(address(this), owner, newTokenId, amount);
-      IEscrowableNFT(nft).updateMarketData(newTokenId, marketData, true);
-    } else {
-      IEscrowableNFT(nft).transfer(address(this), owner, tokenId, amount);
-      IEscrowableNFT(nft).updateMarketData(tokenId, marketData, false);
+    if (newTokenId == 0) {
+      IEscrowableNFT(nft).transfer(address(this), receiver, tokenId, amount);
+      IEscrowableNFT(nft).updateMarketData(tokenId, marketData);
     }
+    emit ReleasedEscrow(
+      receiver, nft, tokenId == _REF_NUMBER ? newTokenId : tokenId, amount, voucherId, key
+    );
   }
 
   function onERC721Received(

@@ -254,7 +254,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     bytes32 blockHash,
     MgdL1MarketData memory marketData
   )
@@ -262,7 +262,8 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     pure
     returns (uint256 identifier)
   {
-    identifier = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
+    identifier =
+      uint256(keccak256(abi.encode(nft, tokenId, amount, receiver, blockHash, marketData)));
   }
 
   function _generateL2NativeIdentifier(MgdL1MarketData memory tokenData)

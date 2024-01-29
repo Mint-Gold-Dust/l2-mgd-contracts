@@ -7,6 +7,7 @@ import {
   ERC721Upgradeable,
   IERC721Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
 import {MintGoldDustERC721} from "mgd-v2-contracts/marketplace/MintGoldDustERC721.sol";
@@ -22,6 +23,8 @@ import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDust
  * https://github.com/Mint-Gold-Dust/v2-contracts
  */
 contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
+  using Counters for Counters.Counter;
+
   /// Events
   /**
    * @dev Emit when `escrow` address is set.
@@ -155,28 +158,43 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
     permit(spender, tokenId, deadline, v, r, s);
   }
 
-  function updateMarketData(
-    uint256 tokenId,
+  function mintFromL2Native(
+    address receiver,
+    uint256, /* amount */
     MgdL1MarketData calldata marketData,
-    bool isL2Native
+    string calldata tokenURI,
+    bytes calldata memoir
   )
     external
+    returns (uint256 newTokenId)
   {
     if (msg.sender != escrow) {
       revert MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
     }
-    if (isL2Native) {
-      tokenIdArtist[tokenId] = marketData.artist;
-      if (marketData.hasCollabs) {
-        hasTokenCollaborators[tokenId] = marketData.hasCollabs;
-        tokenIdCollaboratorsQuantity[tokenId] = marketData.collabsQuantity;
-        tokenCollaborators[tokenId] = marketData.collabs;
-        tokenIdCollaboratorsPercentage[tokenId] = marketData.collabsPercentage;
-      }
+    _tokenIds.increment();
+    newTokenId = _tokenIds.current();
+    _safeMint(receiver, newTokenId);
+    _setTokenURI(newTokenId, tokenURI);
+    tokenIdRoyaltyPercent[newTokenId] = marketData.royaltyPercent;
+    tokenIdMemoir[newTokenId] = memoir;
+    tokenIdArtist[newTokenId] = marketData.artist;
+    _tokenWasSold[newTokenId] = marketData.tokenWasSold;
+    _primarySaleQuantityToSell[newTokenId] += marketData.primarySaleL2QuantityToSell;
+    if (marketData.hasCollabs) {
+      hasTokenCollaborators[newTokenId] = marketData.hasCollabs;
+      tokenIdCollaboratorsQuantity[newTokenId] = marketData.collabsQuantity;
+      tokenCollaborators[newTokenId] = marketData.collabs;
+      tokenIdCollaboratorsPercentage[newTokenId] = marketData.collabsPercentage;
+    }
+    emit EscrowUpdateMarketData(newTokenId, marketData);
+  }
+
+  function updateMarketData(uint256 tokenId, MgdL1MarketData calldata marketData) external {
+    if (msg.sender != escrow) {
+      revert MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
     }
     _tokenWasSold[tokenId] = marketData.tokenWasSold;
     _primarySaleQuantityToSell[tokenId] += marketData.primarySaleL2QuantityToSell;
-
     emit EscrowUpdateMarketData(tokenId, marketData);
   }
 
