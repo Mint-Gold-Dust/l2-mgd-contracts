@@ -40,6 +40,17 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     uint256 indexed releaseKey
   );
 
+  event RedeemClearanceKey(uint256 indexed key, bool state);
+
+  event ReleasedEscrow(
+    address indexed receiver,
+    address nftcontract,
+    uint256 indexed tokenId,
+    uint256 amount,
+    uint256 indexed voucherId,
+    uint256 key
+  );
+
   /// addresses
   address public proxyAdmin;
 
@@ -53,11 +64,16 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   MgdCompanyL2Sync public company;
   address public companyOwner;
 
+  uint256 public constant REF_NUMBER =
+    0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+
   /// Local constants: mock data to mint NFTs
   string private constant _TOKEN_URI = "https://ipfs.nowhere.example/";
   uint256 private constant _ROYALTY_PERCENT = 10;
   string private constant _MEMOIR = "A memoir";
   uint40 private constant _EDITIONS = 5;
+  address[4] private _COLLABS = [address(0), address(0), address(0), address(0)];
+  uint256[5] private _COLLABS_PERCENTAGE = [0, 0, 0, 0, 0];
 
   // Ethereum nfts
   uint256 _721tokenId;
@@ -130,6 +146,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       address(new TransparentUpgradeableProxy(escrowImpl, proxyAdmin, escrowInitData))
     );
     vm.label(address(escrow), "escrow");
+
+    // 3.1- Whitelist the escrow contract as artist
+    company.whitelist(address(escrow), true);
 
     // 4.- Deploying L2 Vouchers (pretending vouchers are on a different chain to simplify tests)
     bytes memory l2voucherInitData;
@@ -227,6 +246,20 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     assertEq(updateL2marketData.royaltyPercent, 0);
   }
 
+  function test_redeemL2NativeVoucher721() public {
+    vm.prank(Bob.addr);
+    l2voucher721.redeemVoucherToL1(nativeVoucherIdFor721, Bob.addr);
+    vm.expectRevert();
+    // This action reverts because the voucher is burned after redeeming
+    l2voucher721.ownerOf(nativeVoucherIdFor721);
+    // Marketdata in L2 must be deleted
+    MgdL1MarketData memory updateL2marketData =
+      l2voucher721.getVoucherMarketData(nativeVoucherIdFor721);
+    assertEq(updateL2marketData.artist, address(0));
+    assertEq(updateL2marketData.primarySaleL2QuantityToSell, 0);
+    assertEq(updateL2marketData.royaltyPercent, 0);
+  }
+
   function test_redeemVoucherThatRepresents1155() public {
     vm.prank(Bob.addr);
     l2voucher1155.redeemVoucherToL1(Bob.addr, _1155VId, _EDITIONS, Bob.addr);
@@ -245,6 +278,31 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     assertEq(l2voucher1155.balanceOf(Bob.addr, _1155VId), _EDITIONS - partialAmount);
     // Marketdata in L2 must be updated
     MgdL1MarketData memory updateL2marketData = l2voucher1155.getVoucherMarketData(_1155VId);
+    assertEq(updateL2marketData.artist, Bob.addr);
+    assertEq(updateL2marketData.primarySaleL2QuantityToSell, _EDITIONS - partialAmount);
+    assertEq(updateL2marketData.royaltyPercent, _ROYALTY_PERCENT);
+  }
+
+  function test_redeemL2NativeVoucher1155() public {
+    vm.prank(Bob.addr);
+    l2voucher1155.redeemVoucherToL1(Bob.addr, nativeVoucherIdFor1155, _EDITIONS, Bob.addr);
+    assertEq(l2voucher1155.balanceOf(Bob.addr, nativeVoucherIdFor1155), 0);
+    // Marketdata in L2 must be deleted
+    MgdL1MarketData memory updateL2marketData =
+      l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
+    assertEq(updateL2marketData.artist, address(0));
+    assertEq(updateL2marketData.primarySaleL2QuantityToSell, 0);
+    assertEq(updateL2marketData.royaltyPercent, 0);
+  }
+
+  function test_redeemL2NativeVoucher1155Partial() public {
+    uint40 partialAmount = 2;
+    vm.prank(Bob.addr);
+    l2voucher1155.redeemVoucherToL1(Bob.addr, nativeVoucherIdFor1155, partialAmount, Bob.addr);
+    assertEq(l2voucher1155.balanceOf(Bob.addr, nativeVoucherIdFor1155), _EDITIONS - partialAmount);
+    // Marketdata in L2 must be updated
+    MgdL1MarketData memory updateL2marketData =
+      l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
     assertEq(updateL2marketData.artist, Bob.addr);
     assertEq(updateL2marketData.primarySaleL2QuantityToSell, _EDITIONS - partialAmount);
     assertEq(updateL2marketData.royaltyPercent, _ROYALTY_PERCENT);
@@ -321,5 +379,218 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     uint256 redeemKey = l2voucher1155.redeemVoucherToL1(Bob.addr, _1155VId, _EDITIONS, Bob.addr);
     assertEq(redeemKey, expectedRedeemKey);
+  }
+
+  function test_settingClearanceToRedeem() public {
+    MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
+    MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
+    (uint256 redeem721Key, bytes32 block1155Hash) =
+      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data);
+    (uint256 redeem1155Key, bytes32 block721Hash) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data
+    );
+    vm.startPrank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeem721Key, true);
+    escrow.setRedeemClearanceKey(redeem1155Key, true);
+    vm.stopPrank();
+    assertEq(
+      escrow.getRedeemClearanceKey(
+        _721VId, address(nft721), _721tokenId, 1, Bob.addr, block1155Hash, market721Data
+      ),
+      true
+    );
+    assertEq(
+      escrow.getRedeemClearanceKey(
+        _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, block721Hash, market1155Data
+      ),
+      true
+    );
+  }
+
+  function test_clearanceToRedeemEvents() public {
+    MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
+    (uint256 redeemKey,) =
+      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData);
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    vm.expectEmit(true, false, false, true, address(escrow));
+    emit RedeemClearanceKey(redeemKey, true);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+  }
+
+  function test_foeTriesToSetClearanceToRedeem(address foe) public {
+    vm.assume(foe != address(0) && foe != L1_CROSSDOMAIN_MESSENGER && foe != company.owner());
+    MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
+    MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
+    (uint256 redeem721Key,) =
+      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data);
+    (uint256 redeem1155Key,) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data
+    );
+    vm.startPrank(foe);
+    vm.expectRevert(MgdL2NFTEscrow.MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed.selector);
+    escrow.setRedeemClearanceKey(redeem721Key, true);
+    vm.expectRevert(MgdL2NFTEscrow.MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed.selector);
+    escrow.setRedeemClearanceKey(redeem1155Key, true);
+    vm.stopPrank();
+  }
+
+  function test_releaseFromEscrow721AndEvents() public {
+    MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
+    (uint256 redeemKey, bytes32 blockHash) =
+      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData);
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(Bob.addr, address(nft721), _721tokenId, 1, _721VId, redeemKey);
+    escrow.releaseFromEscrow(
+      _721VId, address(nft721), _721tokenId, 1, Bob.addr, blockHash, marketData, "", ""
+    );
+    assertEq(nft721.ownerOf(_721tokenId), Bob.addr);
+    assertEq(nft721.getManagePrimarySale(_721tokenId).amount, 1);
+  }
+
+  function test_releaseL2NativeFromEscrow721AndEvents() public {
+    MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(nativeVoucherIdFor721);
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      nativeVoucherIdFor721, address(nft721), REF_NUMBER, 1, Bob.addr, marketData
+    );
+    uint256 newTokenId = nft721._tokenIds() + 1;
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(Bob.addr, address(nft721), newTokenId, 1, nativeVoucherIdFor721, redeemKey);
+    vm.recordLogs();
+    escrow.releaseFromEscrow(
+      nativeVoucherIdFor721,
+      address(nft721),
+      REF_NUMBER,
+      1,
+      Bob.addr,
+      blockHash,
+      marketData,
+      _TOKEN_URI,
+      bytes(_MEMOIR)
+    );
+    VmSafe.Log[] memory entries721 = vm.getRecordedLogs();
+    uint256 resultNewTokenId = uint256(entries721[2].topics[1]);
+    assertEq(resultNewTokenId, newTokenId);
+    assertEq(nft721.ownerOf(newTokenId), Bob.addr);
+    assertEq(nft721.getManagePrimarySale(newTokenId).amount, 1);
+  }
+
+  function test_releaseFromEscrow1155AndEvents() public {
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData
+    );
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(Bob.addr, address(nft1155), _1155tokenId, _EDITIONS, _1155VId, redeemKey);
+    escrow.releaseFromEscrow(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, blockHash, marketData, "", ""
+    );
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenId), _EDITIONS);
+    assertEq(nft1155.getManagePrimarySale(_1155tokenId).amount, _EDITIONS);
+  }
+
+  function test_releaseFromEscrow1155PartialAndEvents() public {
+    uint40 partialAmount = 2;
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
+    // We override marketdata to simulate actions in L2
+    marketData.primarySaleL2QuantityToSell = partialAmount;
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, partialAmount, Bob.addr, marketData
+    );
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(
+      Bob.addr, address(nft1155), _1155tokenId, partialAmount, _1155VId, redeemKey
+    );
+    escrow.releaseFromEscrow(
+      _1155VId,
+      address(nft1155),
+      _1155tokenId,
+      partialAmount,
+      Bob.addr,
+      blockHash,
+      marketData,
+      "",
+      ""
+    );
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenId), partialAmount);
+    assertEq(nft1155.getManagePrimarySale(_1155tokenId).amount, partialAmount);
+  }
+
+  function test_releaseL2NativeFromEscrow1155() public {
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      nativeVoucherIdFor1155, address(nft1155), REF_NUMBER, _EDITIONS, Bob.addr, marketData
+    );
+    uint256 newTokenId = nft1155._tokenIds() + 1;
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(
+      Bob.addr, address(nft1155), newTokenId, _EDITIONS, nativeVoucherIdFor1155, redeemKey
+    );
+    vm.recordLogs();
+    escrow.releaseFromEscrow(
+      nativeVoucherIdFor1155,
+      address(nft1155),
+      REF_NUMBER,
+      _EDITIONS,
+      Bob.addr,
+      blockHash,
+      marketData,
+      _TOKEN_URI,
+      bytes(_MEMOIR)
+    );
+    VmSafe.Log[] memory entries1155 = vm.getRecordedLogs();
+    uint256 resultNewTokenId = uint256(entries1155[2].topics[1]);
+    assertEq(resultNewTokenId, newTokenId);
+    assertEq(nft1155.balanceOf(Bob.addr, newTokenId), _EDITIONS);
+    assertEq(nft1155.getManagePrimarySale(newTokenId).amount, _EDITIONS);
+  }
+
+  function test_releaseL2NativeFromEscrow1155Partial() public {
+    uint40 partialAmount = 2;
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
+    // Replace partialAmount in marketData to simulate actions in L2
+    marketData.primarySaleL2QuantityToSell = partialAmount;
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      nativeVoucherIdFor1155, address(nft1155), REF_NUMBER, partialAmount, Bob.addr, marketData
+    );
+    uint256 newTokenId = nft1155._tokenIds() + 1;
+    vm.prank(L1_CROSSDOMAIN_MESSENGER);
+    escrow.setRedeemClearanceKey(redeemKey, true);
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(escrow));
+    emit ReleasedEscrow(
+      Bob.addr, address(nft1155), newTokenId, partialAmount, nativeVoucherIdFor1155, redeemKey
+    );
+    vm.recordLogs();
+    escrow.releaseFromEscrow(
+      nativeVoucherIdFor1155,
+      address(nft1155),
+      REF_NUMBER,
+      partialAmount,
+      Bob.addr,
+      blockHash,
+      marketData,
+      _TOKEN_URI,
+      bytes(_MEMOIR)
+    );
+    VmSafe.Log[] memory entries1155 = vm.getRecordedLogs();
+    uint256 resultNewTokenId = uint256(entries1155[2].topics[1]);
+    assertEq(resultNewTokenId, newTokenId);
+    assertEq(nft1155.balanceOf(Bob.addr, newTokenId), partialAmount);
+    assertEq(nft1155.getManagePrimarySale(newTokenId).amount, partialAmount);
   }
 }

@@ -56,7 +56,7 @@ contract Helpers is Test {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     MgdL1MarketData memory marketData
   )
     internal
@@ -64,7 +64,8 @@ contract Helpers is Test {
     returns (uint256 key, bytes32 blockHash)
   {
     blockHash = blockhash(block.number);
-    key =
-      uint256(keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData)));
+    key = uint256(
+      keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
+    );
   }
 }
