@@ -220,8 +220,10 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     l2voucher1155.setL1NftMintClearance(_1155VId, true);
     vm.stopPrank();
 
-    l2voucher721.mintL1Nft(_721tokenId, 1, Bob.addr, blockHash721, marketData721);
-    l2voucher1155.mintL1Nft(_1155tokenId, _EDITIONS, Bob.addr, blockHash1155, marketData1155);
+    l2voucher721.mintVoucherFromL1Nft(_721tokenId, 1, Bob.addr, blockHash721, marketData721);
+    l2voucher1155.mintVoucherFromL1Nft(
+      _1155tokenId, _EDITIONS, Bob.addr, blockHash1155, marketData1155
+    );
   }
 
   function test_validateSetup() public {

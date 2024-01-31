@@ -269,7 +269,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     );
     assertEq(l2voucher721.mintCleared(voucherId), true);
 
-    l2voucher721.mintL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
+    l2voucher721.mintVoucherFromL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
 
     assertEq(l2voucher721.ownerOf(voucherId), Bob.addr);
     assertEq(l2voucher721.mintCleared(voucherId), false);
@@ -313,7 +313,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     );
     assertEq(l2voucher1155.mintCleared(voucherId), true);
 
-    l2voucher1155.mintL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
+    l2voucher1155.mintVoucherFromL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
 
     assertEq(l2voucher1155.balanceOf(Bob.addr, voucherId), amountToEscrow);
     assertEq(l2voucher1155.mintCleared(voucherId), false);
@@ -351,10 +351,10 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     CDMessenger(L2_CROSSDOMAIN_MESSENGER).relayMessage(
       nonce, address(escrow), address(l2voucher721), 0, 1_000_000, message
     );
-    l2voucher721.mintL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
+    l2voucher721.mintVoucherFromL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
 
     vm.expectRevert(MgdL2BaseVoucher.MgdL2BaseVoucher__mintL1Nft_notClearedOrAlreadyMinted.selector);
-    l2voucher721.mintL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
+    l2voucher721.mintVoucherFromL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
   }
 
   function test_tryMintingVoucher1155AfterClearanceTwiceReverts() public {
@@ -375,10 +375,10 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
     CDMessenger(L2_CROSSDOMAIN_MESSENGER).relayMessage(
       nonce, address(escrow), address(l2voucher1155), 0, 1_000_000, message
     );
-    l2voucher1155.mintL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
+    l2voucher1155.mintVoucherFromL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
 
     vm.expectRevert(MgdL2BaseVoucher.MgdL2BaseVoucher__mintL1Nft_notClearedOrAlreadyMinted.selector);
-    l2voucher1155.mintL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
+    l2voucher1155.mintVoucherFromL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
   }
 
   function test_minting721VoucherAfterClearanceEvent() public {
@@ -399,7 +399,7 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
 
     vm.expectEmit(true, false, false, true, address(l2voucher721));
     emit L1NftMinted(voucherId);
-    l2voucher721.mintL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
+    l2voucher721.mintVoucherFromL1Nft(tokenId, 1, Bob.addr, blockHash, marketData);
   }
 
   function test_minting1155VoucherAfterClearanceEvent() public {
@@ -423,6 +423,6 @@ contract ReceivingL2EscrowNoticeTests is CommonSigners, BaseL2Constants, MgdTest
 
     vm.expectEmit(true, false, false, true, address(l2voucher1155));
     emit L1NftMinted(voucherId);
-    l2voucher1155.mintL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
+    l2voucher1155.mintVoucherFromL1Nft(tokenId, amountToEscrow, Bob.addr, blockHash, marketData);
   }
 }
