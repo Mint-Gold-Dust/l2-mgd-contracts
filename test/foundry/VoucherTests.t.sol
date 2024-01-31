@@ -44,13 +44,6 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
   string private constant _MEMOIR = "A memoir";
   uint40 private constant _EDITIONS = 10;
 
-  uint256[] private _721tokenIdsOfBob;
-
-  /// Test Vouchers
-  uint256 nativeVoucherIdFor721;
-  uint256 nativeVoucherIdFor1155;
-  uint256 nativeSplitVoucherId;
-
   function setUp() public {
     companyOwner = Alice.addr;
     vm.startPrank(companyOwner);
@@ -137,24 +130,17 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     company.whitelist(Bob.addr, true);
 
     vm.stopPrank();
-
-    // 8.- Bob Mints an NFT on ethereum
-    vm.startPrank(Bob.addr);
-    _721tokenIdsOfBob.push(nft721.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR)));
-    vm.stopPrank();
   }
 
   function test_mintingNativeVoucherThatRepresents721() public {
     vm.prank(Bob.addr);
     uint256 vId = l2voucher721.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR));
-    nativeVoucherIdFor721 = vId;
     assertEq(l2voucher721.ownerOf(vId), Bob.addr);
   }
 
   function test_mintingNativeVoucherThatRepresents1155() public {
     vm.prank(Bob.addr);
     uint256 vId = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, _EDITIONS, bytes(_MEMOIR));
-    nativeVoucherIdFor1155 = vId;
     assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
   }
 
@@ -172,7 +158,6 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     uint256 vId = l2voucher721.splitMint(
       _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, 1, bytes(_MEMOIR)
     );
-    nativeSplitVoucherId = vId;
     assertEq(l2voucher721.ownerOf(vId), Bob.addr);
   }
 
@@ -190,7 +175,6 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     uint256 vId = l2voucher1155.splitMint(
       _TOKEN_URI, uint128(_ROYALTY_PERCENT), collabs, collabsPercent, _EDITIONS, bytes(_MEMOIR)
     );
-    nativeSplitVoucherId = vId;
     assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
   }
 

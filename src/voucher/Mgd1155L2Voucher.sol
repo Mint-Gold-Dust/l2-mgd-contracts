@@ -121,28 +121,52 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
   }
 
   /// @notice Refer to {MgdL2BaseVoucher-_redeeemVoucherToL1()}
-  function redeemVoucherToL1(uint256 voucherId, uint256 amount, address receiver) public {
-    _redeemVoucherToL1(voucherId, amount, receiver);
+  function redeemVoucherToL1(
+    address owner,
+    uint256 voucherId,
+    uint40 amount,
+    address receiver
+  )
+    public
+    returns (uint256)
+  {
+    if (owner == msg.sender) {
+      if (balanceOf(msg.sender, voucherId) < amount) {
+        revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
+      }
+      return _redeemVoucherToL1(owner, voucherId, amount, receiver);
+    } else {
+      if (allowance(owner, msg.sender, voucherId) < amount) {
+        revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
+      }
+      return _redeemVoucherToL1(owner, voucherId, amount, receiver);
+    }
   }
 
   /// @inheritdoc MgdL2BaseVoucher
   function _redeemVoucherToL1(
+    address owner,
     uint256 voucherId,
-    uint256 amount,
+    uint40 amount,
     address receiver
   )
     internal
     override
+    returns (uint256)
   {
-    if (balanceOf(msg.sender, voucherId) < amount) {
-      revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
-    }
     if (receiver == escrowL1 || receiver == address(0)) {
       revert MgdL2BaseVoucher__redeemVoucherToL1_wrongReceiver();
     }
     L1VoucherData memory voucherData = _voucherL1Data[voucherId];
     MgdL1MarketData memory marketData = _voucherMarketData[voucherId];
+    if (owner == marketData.artist) {
+      uint40 primarySaleToCarry = marketData.primarySaleL2QuantityToSell >= amount
+        ? amount
+        : marketData.primarySaleL2QuantityToSell;
 
+      marketData.primarySaleL2QuantityToSell = primarySaleToCarry;
+      _voucherMarketData[voucherId].primarySaleL2QuantityToSell -= primarySaleToCarry;
+    }
     (uint256 releaseKey, bytes32 blockHash) = _generateL1RedeemKey(
       voucherId,
       voucherData.nft,
@@ -165,6 +189,8 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       marketData,
       releaseKey
     );
+
+    return releaseKey;
   }
 
   /// @notice See {MgdL2BaseVoucher-_burnNativeVoucher()}
@@ -242,6 +268,8 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
 
   function _burnVoucherAndClearData(uint256 voucherId, uint256 amount, address from) internal {
     _burn(from, voucherId, amount);
-    _clearVoucherData(voucherId);
+    if (totalSupply(voucherId) == 0) {
+      _clearVoucherData(voucherId);
+    }
   }
 }

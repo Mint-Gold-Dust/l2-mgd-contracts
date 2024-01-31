@@ -50,4 +50,22 @@ contract Helpers is Test {
   {
     (marketData) = abi.decode(tokenIdData, (MgdL1MarketData));
   }
+
+  function generate_L1RedeemKey(
+    uint256 voucherId,
+    address nft,
+    uint256 tokenId,
+    uint256 amount,
+    address receiver,
+    MgdL1MarketData memory marketData
+  )
+    internal
+    view
+    returns (uint256 key, bytes32 blockHash)
+  {
+    blockHash = blockhash(block.number);
+    key = uint256(
+      keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
+    );
+  }
 }

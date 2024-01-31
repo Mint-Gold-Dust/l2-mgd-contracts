@@ -7,6 +7,7 @@ import {
   ERC721Upgradeable,
   IERC721Upgradeable
 } from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {MgdL1MarketData} from "./voucher/VoucherDataTypes.sol";
 import {MintGoldDustERC721} from "mgd-v2-contracts/marketplace/MintGoldDustERC721.sol";
@@ -22,6 +23,8 @@ import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDust
  * https://github.com/Mint-Gold-Dust/v2-contracts
  */
 contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
+  using Counters for Counters.Counter;
+
   /// Events
   /**
    * @dev Emit when `escrow` address is set.
@@ -44,6 +47,33 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
    */
   uint256[50] private __gap;
 
+  /// @dev Overriden to route to `safeTransferFrom` without `data` in order to handle escrowing with proper `data`.
+  function transfer(
+    address from,
+    address to,
+    uint256 tokenId,
+    uint256
+  )
+    public
+    override
+    nonReentrant
+  {
+    safeTransferFrom(from, to, tokenId);
+  }
+
+  /// @dev Overriden to include `data` from `_getTokenIdData` to send when sending to `escrow` address.
+  /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
+  function transferFrom(
+    address from,
+    address to,
+    uint256 tokenId
+  )
+    public
+    override(ERC721Upgradeable, IERC721Upgradeable)
+  {
+    safeTransferFrom(from, to, tokenId);
+  }
+
   /// @dev Overriden to include `data` from `_getTokenIdData` to send when sending to `escrow` address.
   /// @dev CAUTION! If sending to `escrow`, ensure the `from` address is an accesible acount in L2.
   function safeTransferFrom(
@@ -60,20 +90,6 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
       data = _getTokenIdDataAndUpdateState(tokenId, 1);
     }
     safeTransferFrom(from, to, tokenId, data);
-  }
-
-  /// @dev Overriden to route to `safeTransferFrom` without `data` in order to handle escrowing with proper `data`.
-  function transfer(
-    address _from,
-    address _to,
-    uint256 _tokenId,
-    uint256
-  )
-    public
-    override
-    nonReentrant
-  {
-    safeTransferFrom(_from, _to, _tokenId);
   }
 
   /**
@@ -142,28 +158,43 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
     permit(spender, tokenId, deadline, v, r, s);
   }
 
-  function updateMarketData(
-    uint256 tokenId,
+  function mintFromL2Native(
+    address receiver,
+    uint256, /* amount */
     MgdL1MarketData calldata marketData,
-    bool isL2Native
+    string calldata tokenURI,
+    bytes calldata memoir
   )
     external
+    returns (uint256 newTokenId)
   {
     if (msg.sender != escrow) {
       revert MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
     }
-    if (isL2Native) {
-      tokenIdArtist[tokenId] = marketData.artist;
-      if (marketData.hasCollabs) {
-        hasTokenCollaborators[tokenId] = marketData.hasCollabs;
-        tokenIdCollaboratorsQuantity[tokenId] = marketData.collabsQuantity;
-        tokenCollaborators[tokenId] = marketData.collabs;
-        tokenIdCollaboratorsPercentage[tokenId] = marketData.collabsPercentage;
-      }
+    _tokenIds.increment();
+    newTokenId = _tokenIds.current();
+    _safeMint(receiver, newTokenId);
+    _setTokenURI(newTokenId, tokenURI);
+    tokenIdRoyaltyPercent[newTokenId] = marketData.royaltyPercent;
+    tokenIdMemoir[newTokenId] = memoir;
+    tokenIdArtist[newTokenId] = marketData.artist;
+    _tokenWasSold[newTokenId] = marketData.tokenWasSold;
+    _primarySaleQuantityToSell[newTokenId] += marketData.primarySaleL2QuantityToSell;
+    if (marketData.hasCollabs) {
+      hasTokenCollaborators[newTokenId] = marketData.hasCollabs;
+      tokenIdCollaboratorsQuantity[newTokenId] = marketData.collabsQuantity;
+      tokenCollaborators[newTokenId] = marketData.collabs;
+      tokenIdCollaboratorsPercentage[newTokenId] = marketData.collabsPercentage;
+    }
+    emit EscrowUpdateMarketData(newTokenId, marketData);
+  }
+
+  function updateMarketData(uint256 tokenId, MgdL1MarketData calldata marketData) external {
+    if (msg.sender != escrow) {
+      revert MgdERC721PermitEscrowable__onlyEscrow_notAllowed();
     }
     _tokenWasSold[tokenId] = marketData.tokenWasSold;
     _primarySaleQuantityToSell[tokenId] += marketData.primarySaleL2QuantityToSell;
-
     emit EscrowUpdateMarketData(tokenId, marketData);
   }
 
@@ -212,9 +243,8 @@ contract MgdERC721PermitEscrowable is MintGoldDustERC721, ERC721Permit {
     returns (uint40 primarySaleToCarry)
   {
     uint40 primarySaleRemaining = _safeCastToUint40(_primarySaleQuantityToSell[tokenId]);
-    primarySaleToCarry = primarySaleRemaining >= amountToEscrow
-      ? primarySaleRemaining - amountToEscrow
-      : primarySaleRemaining;
+    primarySaleToCarry =
+      primarySaleRemaining >= amountToEscrow ? amountToEscrow : primarySaleRemaining;
   }
 
   function _safeCastToUint40(uint256 value) internal pure returns (uint40) {

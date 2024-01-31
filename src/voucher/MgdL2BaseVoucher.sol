@@ -116,6 +116,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     MgdL1MarketData memory marketData
   )
     public
+    virtual
   {
     address nft = mgdNFTL1;
     uint256 voucherId =
@@ -123,11 +124,8 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     if (!mintCleared[voucherId]) {
       revert MgdL2BaseVoucher__mintL1Nft_notClearedOrAlreadyMinted();
     }
-
     delete mintCleared[voucherId];
-
     _executeMintFlow(owner, representedAmount, marketData, voucherId, "", bytes(""));
-
     _voucherL1Data[voucherId] =
       L1VoucherData({nft: nft, tokenId: tokenId, representedAmount: representedAmount});
   }
@@ -171,12 +169,12 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
 
   /// @inheritdoc MgdL2BaseNFT
   function splitMint(
-    string calldata tokenURI,
+    string memory tokenURI,
     uint128 royalty,
-    address[] calldata collaborators,
-    uint256[] calldata collabsPercentage,
+    address[] memory collaborators,
+    uint256[] memory collabsPercentage,
     uint40 amount,
-    bytes calldata memoir
+    bytes memory memoir
   )
     public
     virtual
@@ -198,10 +196,19 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
   /// if `voucherId` is a L2 native it will bring the NFT into existente in Ethereum.
   /// @dev CAUTION! This process can take up to 7 days to complete due to L2 rollup-requirements.
   /// @dev CAUTION! Ensure the `receiver` address is an accesible acount in Ethereum
+  /// @param owner of the voucher
   /// @param voucherId to bridge
   /// @param amount of NFT to bridge
   /// @param receiver of the NFT on L1
-  function _redeemVoucherToL1(uint256 voucherId, uint256 amount, address receiver) internal virtual;
+  function _redeemVoucherToL1(
+    address owner,
+    uint256 voucherId,
+    uint40 amount,
+    address receiver
+  )
+    internal
+    virtual
+    returns (uint256);
 
   /// @notice Allows an approved address or token owner to burn a voucher natively created in L2.
   /// @param voucherId The unique identifier for the token.
@@ -247,7 +254,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     bytes32 blockHash,
     MgdL1MarketData memory marketData
   )
@@ -255,7 +262,8 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     pure
     returns (uint256 identifier)
   {
-    identifier = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
+    identifier =
+      uint256(keccak256(abi.encode(nft, tokenId, amount, receiver, blockHash, marketData)));
   }
 
   function _generateL2NativeIdentifier(MgdL1MarketData memory tokenData)

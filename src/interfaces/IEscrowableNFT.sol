@@ -8,20 +8,15 @@ interface IEscrowableNFT {
 
   function transfer(address from, address to, uint256 tokenId, uint256 amount) external;
 
-  function updateMarketData(
-    uint256 tokenId,
-    MgdL1MarketData calldata marketData,
-    bool isL2Native
-  )
-    external;
+  function updateMarketData(uint256 tokenId, MgdL1MarketData calldata marketData) external;
 
-  function mintNft(
-    string calldata tokenURI,
-    uint256 royaltyPercent,
+  function mintFromL2Native(
+    address receiver,
     uint256 amount,
+    MgdL1MarketData calldata marketData,
+    string calldata tokenURI,
     bytes calldata memoir
   )
     external
-    payable
-    returns (uint256);
+    returns (uint256 newTokenId);
 }
