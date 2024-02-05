@@ -97,7 +97,7 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
   }
 
   /// @inheritdoc MgdL2BaseVoucher
-  function mintL1Nft(
+  function mintVoucherFromL1Nft(
     uint256 tokenId,
     uint256, /*representedAmount*/
     address owner,
@@ -107,7 +107,7 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     public
     override
   {
-    return super.mintL1Nft(tokenId, 1, owner, blockHash, marketData);
+    return super.mintVoucherFromL1Nft(tokenId, 1, owner, blockHash, marketData);
   }
 
   /// @inheritdoc MgdL2BaseVoucher

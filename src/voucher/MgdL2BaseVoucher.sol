@@ -108,7 +108,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
   /// @param owner of tokenId in `nft` contract in L1
   /// @param blockHash when escrow tx occured
   /// @param marketData params when escrow occured
-  function mintL1Nft(
+  function mintVoucherFromL1Nft(
     uint256 tokenId,
     uint256 representedAmount,
     address owner,
