@@ -287,8 +287,19 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     returns (uint256 key, bytes32 blockHash)
   {
     blockHash = blockhash(block.number);
-    key =
-      uint256(keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData)));
+    if (tokenId == _REF_NUMBER) {
+      bytes32 hashedUriMemoir =
+        keccak256(abi.encode(_tokenURIs[voucherId], _tokenIdMemoir[voucherId]));
+      key = uint256(
+        keccak256(
+          abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData, hashedUriMemoir)
+        )
+      );
+    } else {
+      key = uint256(
+        keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData))
+      );
+    }
   }
 
   function _clearVoucherData(uint256 voucherId) internal {

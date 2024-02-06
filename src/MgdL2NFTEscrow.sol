@@ -140,7 +140,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
   /// @param nft token address to redeem
   /// @param tokenId  to redeeem
   /// @param amount to redeem
-  /// @param owner who will receive nft
+  /// @param receiver who will receive nft
   /// @param blockHash of tx in L2 where {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called
   /// @param marketData status of voucher when redeem call was initiated in L2
   function getRedeemClearanceKey(
@@ -148,16 +148,19 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     bytes32 blockHash,
-    MgdL1MarketData calldata marketData
+    MgdL1MarketData calldata marketData,
+    string memory tokenURI,
+    bytes memory tokenIdMemoir
   )
     external
     view
     returns (bool)
   {
-    uint256 key =
-      _generateL1RedeemKey(voucherId, nft, tokenId, amount, owner, blockHash, marketData);
+    uint256 key = _generateL1RedeemKey(
+      voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, tokenIdMemoir
+    );
     return redeemClearance[key];
   }
 
@@ -180,13 +183,14 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     address receiver,
     bytes32 blockHash,
     MgdL1MarketData calldata marketData,
-    string calldata tokenURI,
-    bytes calldata memoir
+    string memory tokenURI,
+    bytes memory memoir
   )
     external
   {
-    uint256 key =
-      _generateL1RedeemKey(voucherId, nft, tokenId, amount, receiver, blockHash, marketData);
+    uint256 key = _generateL1RedeemKey(
+      voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, memoir
+    );
     if (!redeemClearance[key]) {
       revert MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
     }
@@ -326,16 +330,30 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     bytes32 blockHash,
-    MgdL1MarketData calldata marketData
+    MgdL1MarketData calldata marketData,
+    string memory tokenURI,
+    bytes memory tokenIdMemoir
   )
     internal
     pure
     returns (uint256 key)
   {
-    key =
-      uint256(keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData)));
+    if (tokenId == _REF_NUMBER) {
+      bytes32 hashedUriMemoir = keccak256(abi.encode(tokenURI, tokenIdMemoir));
+      key = uint256(
+        keccak256(
+          abi.encode(
+            voucherId, nft, tokenId, amount, receiver, blockHash, marketData, hashedUriMemoir
+          )
+        )
+      );
+    } else {
+      key = uint256(
+        keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
+      );
+    }
   }
 
   function _sendEscrowNoticeToL2(uint256 voucherId, bool state, TypeNFT nftType) internal {

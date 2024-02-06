@@ -245,11 +245,12 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
     _mint(owner, voucherId, representedAmount, "");
 
     _voucherMarketData[voucherId] = marketData;
-    if (memoir.length > 0) {
-      _tokenIdMemoir[voucherId] = memoir;
-    }
 
     if (generatedL1VoucherId == 0) {
+      _tokenURIs[voucherId] = tokenURI;
+      if (memoir.length > 0) {
+        _tokenIdMemoir[voucherId] = memoir;
+      }
       emit MintGoldDustNFTMinted(
         voucherId,
         tokenURI,
