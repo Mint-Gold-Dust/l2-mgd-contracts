@@ -222,11 +222,12 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     _safeMint(owner, voucherId);
 
     _voucherMarketData[voucherId] = marketData;
-    if (memoir.length > 0) {
-      _tokenIdMemoir[voucherId] = memoir;
-    }
 
     if (generatedL1VoucherId == 0) {
+      _tokenURIs[voucherId] = tokenURI;
+      if (memoir.length > 0) {
+        _tokenIdMemoir[voucherId] = memoir;
+      }
       emit MintGoldDustNFTMinted(
         voucherId,
         tokenURI,

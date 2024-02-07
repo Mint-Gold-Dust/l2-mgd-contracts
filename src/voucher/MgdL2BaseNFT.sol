@@ -49,7 +49,7 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
 
   // voucherId => struct MgdL1MarketData
   mapping(uint256 => MgdL1MarketData) internal _voucherMarketData;
-
+  mapping(uint256 => string) internal _tokenURIs;
   mapping(uint256 => bytes) internal _tokenIdMemoir;
 
   /**

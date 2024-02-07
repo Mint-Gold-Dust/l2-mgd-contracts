@@ -5,6 +5,9 @@ import {Test} from "forge-std/Test.sol";
 import {MgdL1MarketData} from "../../../src/MgdL2NFTEscrow.sol";
 
 contract Helpers is Test {
+  uint256 private constant _REF_NUMBER =
+    0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+
   function generate_packedSignature(
     bytes32 digest,
     uint256 signerPrivKey
@@ -57,15 +60,28 @@ contract Helpers is Test {
     uint256 tokenId,
     uint256 amount,
     address receiver,
-    MgdL1MarketData memory marketData
+    MgdL1MarketData memory marketData,
+    string memory tokenURI,
+    bytes memory tokenIdMemoir
   )
     internal
     view
     returns (uint256 key, bytes32 blockHash)
   {
     blockHash = blockhash(block.number);
-    key = uint256(
-      keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
-    );
+    if (tokenId == _REF_NUMBER) {
+      bytes32 hashedUriMemoir = keccak256(abi.encode(tokenURI, tokenIdMemoir));
+      key = uint256(
+        keccak256(
+          abi.encode(
+            voucherId, nft, tokenId, amount, receiver, blockHash, marketData, hashedUriMemoir
+          )
+        )
+      );
+    } else {
+      key = uint256(
+        keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
+      );
+    }
   }
 }
