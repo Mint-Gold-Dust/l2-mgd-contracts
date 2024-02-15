@@ -72,8 +72,10 @@ contract DeployMgdCompanyL2Sync is Script {
 
     // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(1, proxy); // mainnet
     // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(8453, proxy); // base
-    MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(11155111, proxy); // sepolia
-    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(84532, proxy); // base-sepolia
+    // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(11155111, proxy); // sepolia
+    MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(
+      84532, 0xBA2a693d70D68667Cd346D69Da6F9D633C16f467
+    ); // base-sepolia
     // MgdCompanyL2Sync(proxy).setCrossDomainMGDCompany(31337, proxy); // localhost
     console.log("Called MgdCompanyL2Sync.setCrossDomainMGDCompany()");
 
