@@ -4,11 +4,11 @@
 
 **MGD is a decentralized NFT ecosystem built for artists and collectors.**
 
-This repository contains the smart contracts that allow MGD to operate both in Ethereum and an Op-stack compatible layer 2 (such as [Base](https://base.org/) or [Optimism](https://www.optimism.io/)).
+This repository contains the smart contracts that allow MGD specific NFTs to operate both in Ethereum and [Base](https://base.org/) or alternatively [Optimism](https://www.optimism.io/). **It is not the intention to have more chains than two chains connected.**
 
 The smart contracts in this repository introduce the following high level functionality:
 
-- **NFT Portability**: Bring your MGD NFTs from Ethereum to the L2 or viceverse via an escrow-voucher contract system.
+- **NFT Portability**: Bring your MGD NFTs from Ethereum to the Base or viceverse via an escrow-voucher contract system.
 - **L2 Usability**: Create, sell, or auction your art in more exciting and different ways, not to mention also affordable, by using the MGD L2 ecosystem.
 - **Simpler Transferability**: Approve the sell, auction or transfer of your NFTs with the use of "permits" or signatures, instead of the current additional approval transaction.
 
