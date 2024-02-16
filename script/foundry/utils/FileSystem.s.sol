@@ -6,6 +6,8 @@ import {ScriptConstants} from "./ScriptConstants.s.sol";
 import {console} from "forge-std/console.sol";
 
 contract FileSystem is Script, ScriptConstants {
+    error FileNotFound(string chainName, string contractLabel);
+
     function saveAddress(
         string memory contractLabel,
         string memory chainName,
