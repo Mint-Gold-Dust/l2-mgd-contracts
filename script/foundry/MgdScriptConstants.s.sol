@@ -8,4 +8,6 @@ contract MgdScriptConstants {
     uint256 internal constant _MAX_ROYALTY = 20e18;
     uint256 internal constant _AUCTION_DURATION = 1 days;
     uint256 internal constant _AUCTION_EXTENSION = 5 minutes;
+
+    string internal constant _BASE_URI = "https://www.mintgolddust.com/";
 }

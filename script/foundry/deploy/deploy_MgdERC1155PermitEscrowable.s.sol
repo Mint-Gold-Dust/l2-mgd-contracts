@@ -9,6 +9,7 @@ import {TransparentUpgradeableProxy, TransparentProxyDeployer} from "./deploy_Tr
 
 struct MgdERC1155PermitEscrowableParams {
     address mgdCompanyL2Sync;
+    string baseURI;
 }
 
 library MgdERC1155PermitEscrowableDeployer {
@@ -39,7 +40,8 @@ library MgdERC1155PermitEscrowableDeployer {
 
             bytes memory initData = abi.encodeWithSelector(
                 MintGoldDustERC1155.initializeChild.selector,
-                initParams.mgdCompanyL2Sync
+                initParams.mgdCompanyL2Sync,
+                initParams.baseURI
             );
 
             address proxy = TransparentProxyDeployer.deployTransparentProxy(

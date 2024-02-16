@@ -8,6 +8,8 @@ import {console} from "forge-std/console.sol";
 contract FileSystem is Script, ScriptConstants {
     error FileNotFound(string chainName, string contractLabel);
 
+    bytes temp;
+
     function saveAddress(
         string memory contractLabel,
         string memory chainName,
@@ -20,11 +22,21 @@ contract FileSystem is Script, ScriptConstants {
     function getAddress(
         string memory contractLabel,
         string memory chainName
-    ) public view returns (address addr) {
+    ) public returns (address addr) {
         string memory content = vm.readFile(
             getContractLabelPathAt(contractLabel, chainName)
         );
-        addr = vm.parseAddress(content);
+        temp = bytes(content);
+        uint256 contentLength = temp.length;
+        if (contentLength > 42) {
+            uint256 pops = contentLength - 42;
+            for (uint256 i = 0; i < pops; i++) {
+                temp.pop();
+            }
+        }
+        string memory modContent = string(temp);
+        addr = vm.parseAddress(modContent);
+        delete temp;
     }
 
     function getContractLabelPathAt(
@@ -44,13 +56,5 @@ contract FileSystem is Script, ScriptConstants {
             );
         }
         vm.writeLine(path, content);
-    }
-
-    function vmStartBroadcast() public {
-        vm.startBroadcast();
-    }
-
-    function vmStopBroadcast() public {
-        vm.stopBroadcast();
     }
 }

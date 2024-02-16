@@ -51,7 +51,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         fs = new FileSystem();
 
         vm.startBroadcast();
-        executeDeployActions(true);
+        executeDeployActions(false);
         vm.stopBroadcast();
     }
 
@@ -69,7 +69,9 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
                 auctionDurationInMinutes: _AUCTION_DURATION,
                 auctionFinalMinute: _AUCTION_EXTENSION
             });
-            MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(fs, params, false);
+            MgdCompanyL2Sync company = MgdCompanyL2SyncDeployer
+                .deployMgdCompanyL2Sync(fs, params, false);
+            company.setMessenger(getSafeAddress("Messenger", chainName));
         }
         // MintGoldDustMemoir
         if (config.memoir == Action.DEPLOY) {
@@ -104,7 +106,8 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
                     mgdCompanyL2Sync: getSafeAddress(
                         "MgdCompanyL2Sync",
                         chainName
-                    )
+                    ),
+                    baseURI: _BASE_URI
                 });
             MgdERC1155PermitEscrowableDeployer.deployMgdERC1155PermitEscrowable(
                     fs,
@@ -200,7 +203,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
     function getSafeAddress(
         string memory contractLabel,
         string memory chainName
-    ) private view returns (address) {
+    ) private returns (address) {
         try fs.getAddress(contractLabel, chainName) returns (address addr) {
             return addr;
         } catch {
