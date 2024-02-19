@@ -10,4 +10,7 @@ contract MgdScriptConstants {
     uint256 internal constant _AUCTION_EXTENSION = 5 minutes;
 
     string internal constant _BASE_URI = "https://www.mintgolddust.com/";
+
+    address internal constant _MGD_SIGNER =
+        0x97d35f7dA031e3568d4528C04d5F498E3c3Dee70;
 }

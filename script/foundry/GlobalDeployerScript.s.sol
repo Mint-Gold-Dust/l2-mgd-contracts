@@ -4,6 +4,7 @@ pragma solidity 0.8.18;
 import {console} from "forge-std/console.sol";
 import {FileSystem} from "./utils/FileSystem.s.sol";
 import {MgdScriptConstants} from "./MgdScriptConstants.s.sol";
+import {TypeNFT} from "../../src/voucher/VoucherDataTypes.sol";
 
 import "./deploy/MgdDeployLibraries.s.sol";
 
@@ -57,6 +58,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
 
     function executeDeployActions(bool withVouchers) internal {
         string memory chainName = fs.getChainName(block.chainid);
+        string memory pairChain = fs.getPairChainName(block.chainid);
 
         // MgdCompanyL2Sync
         if (config.company == Action.DEPLOY) {
@@ -117,7 +119,6 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         }
         // Mgd721L2Voucher
         if (config.mgdVoucher721 == Action.DEPLOY && withVouchers) {
-            string memory pairChain = fs.getPairChain(block.chainid);
             Mgd721L2VoucherParams memory params = Mgd721L2VoucherParams({
                 mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName),
                 mgdL2NFTescrow: getSafeAddress("MgdL2NFTEscrow", pairChain),
@@ -131,7 +132,6 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         }
         // Mgd1155L2Voucher
         if (config.mgdVoucher1155 == Action.DEPLOY && withVouchers) {
-            string memory pairChain = fs.getPairChain(block.chainid);
             Mgd1155L2VoucherParams memory params = Mgd1155L2VoucherParams({
                 mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName),
                 mgdL2NFTescrow: getSafeAddress("MgdL2NFTEscrow", pairChain),
@@ -197,6 +197,92 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             MintGoldDustMarketplaceAuctionDeployer
                 .deployMintGoldDustMarketplaceAuction(fs, params, false);
+        }
+    }
+
+    function executeConfigureActions() internal {
+        string memory chainName = fs.getChainName(block.chainid);
+        string memory pairChain = fs.getPairChainName(block.chainid);
+
+        // MgdCompanyL2Sync
+        if (config.company == Action.CONFIGURE) {
+            MgdCompanyL2Sync company = MgdCompanyL2Sync(
+                getSafeAddress("MgdCompanyL2Sync", chainName)
+            );
+            if (address(company.messenger()) == address(0)) {
+                company.setMessenger(getSafeAddress("Messenger", chainName));
+            }
+            company.setCrossDomainMGDCompany(
+                getPairChainId(block.chainid),
+                getSafeAddress("MgdCompanyL2Sync", pairChain)
+            );
+            company.setPublicKey(_MGD_SIGNER);
+        }
+        // MgdL2NFTEscrow
+        if (config.escrow == Action.CONFIGURE) {
+            MgdL2NFTEscrow escrow = MgdL2NFTEscrow(
+                getSafeAddress("MgdL2NFTEscrow", chainName)
+            );
+            if (escrow.voucher721L2() == address(0)) {
+                escrow.setVoucherL2(
+                    getSafeAddress("Mgd721L2Voucher", chainName),
+                    TypeNFT.ERC721
+                );
+            }
+            if (escrow.voucher1155L2() == address(0)) {
+                escrow.setVoucherL2(
+                    getSafeAddress("Mgd1155L2Voucher", chainName),
+                    TypeNFT.ERC1155
+                );
+            }
+        }
+        // MgdERC721PermitEscrowable
+        if (config.mgd721 == Action.CONFIGURE) {
+            MgdERC721PermitEscrowable mgd721 = MgdERC721PermitEscrowable(
+                getSafeAddress("MgdERC721PermitEscrowable", chainName)
+            );
+            mgd721.setMintGoldDustSetPriceAddress(
+                getSafeAddress("MintGoldDustSetPrice", chainName)
+            );
+            mgd721.setMintGoldDustMarketplaceAuctionAddress(
+                getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+            );
+            if (mgd721.escrow() == address(0)) {
+                mgd721.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+            }
+        }
+        // MgdERC1155PermitEscrowable
+        if (config.mgd1155 == Action.CONFIGURE) {
+            MgdERC1155PermitEscrowable mgd1155 = MgdERC1155PermitEscrowable(
+                getSafeAddress("MgdERC1155PermitEscrowable", chainName)
+            );
+            mgd1155.setMintGoldDustSetPriceAddress(
+                getSafeAddress("MintGoldDustSetPrice", chainName)
+            );
+            mgd1155.setMintGoldDustMarketplaceAuctionAddress(
+                getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+            );
+            if (mgd1155.escrow() == address(0)) {
+                mgd1155.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+            }
+        }
+        // MintGoldDustSetPrice
+        if (config.mgdSetPrice == Action.CONFIGURE) {
+            MintGoldDustSetPrice setPrice = MintGoldDustSetPrice(
+                getSafeAddress("MintGoldDustSetPrice", chainName)
+            );
+            setPrice.setMintGoldDustMarketplace(
+                getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+            );
+        }
+        // MintGoldDustMarketplaceAuction
+        if (config.mgdAuction == Action.CONFIGURE) {
+            MintGoldDustMarketplaceAuction auction = MintGoldDustMarketplaceAuction(
+                    getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+                );
+            auction.setMintGoldDustMarketplace(
+                getSafeAddress("MintGoldDustSetPrice", chainName)
+            );
         }
     }
 
