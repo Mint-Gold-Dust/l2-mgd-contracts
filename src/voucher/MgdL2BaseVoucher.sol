@@ -271,7 +271,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     view
     returns (uint256 identifier)
   {
-    identifier = uint256(keccak256(abi.encode(blockhash(block.number), tokenData)));
+    identifier = uint256(keccak256(abi.encode(blockhash(block.number - 1), tokenData)));
   }
 
   function _generateL1RedeemKey(
@@ -286,7 +286,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     view
     returns (uint256 key, bytes32 blockHash)
   {
-    blockHash = blockhash(block.number);
+    blockHash = blockhash(block.number - 1);
     if (tokenId == _REF_NUMBER) {
       bytes32 hashedUriMemoir =
         keccak256(abi.encode(_tokenURIs[voucherId], _tokenIdMemoir[voucherId]));

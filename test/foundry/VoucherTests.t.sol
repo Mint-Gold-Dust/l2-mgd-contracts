@@ -136,12 +136,24 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     vm.prank(Bob.addr);
     uint256 vId = l2voucher721.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR));
     assertEq(l2voucher721.ownerOf(vId), Bob.addr);
+
+    vm.roll(block.number + 1);
+
+    vm.prank(Bob.addr);
+    uint256 vId2 = l2voucher721.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, 1, bytes(_MEMOIR));
+    assertEq(l2voucher721.ownerOf(vId2), Bob.addr);
   }
 
   function test_mintingNativeVoucherThatRepresents1155() public {
     vm.prank(Bob.addr);
     uint256 vId = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, _EDITIONS, bytes(_MEMOIR));
     assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
+
+    vm.roll(block.number + 1);
+
+    vm.prank(Bob.addr);
+    uint256 vId2 = l2voucher1155.mintNft(_TOKEN_URI, _ROYALTY_PERCENT, _EDITIONS, bytes(_MEMOIR));
+    assertEq(l2voucher1155.balanceOf(Bob.addr, vId2), _EDITIONS);
   }
 
   function test_mintingNativeSplitMinted721Voucher() public {
