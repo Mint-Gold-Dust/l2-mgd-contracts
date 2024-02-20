@@ -11,7 +11,7 @@ contract SignMessage is Test {
   bytes32 private constant DIGEST =
     0x73f2caa7f6b08fcf10d7e4d1c9bac8beae69b450c9f037a78d0becd3d6f4f790;
 
-  function run() public {
+  function run() public view {
     bytes memory signature = signMessage(DIGEST, PK);
     console.log("Signature:");
     console.logBytes(signature);
