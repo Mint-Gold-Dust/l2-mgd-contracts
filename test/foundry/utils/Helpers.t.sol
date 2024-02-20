@@ -42,7 +42,7 @@ contract Helpers is Test {
     view
     returns (uint256 voucherId, bytes32 blockHash)
   {
-    blockHash = blockhash(block.number);
+    blockHash = blockhash(block.number - 1);
     voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
@@ -68,7 +68,7 @@ contract Helpers is Test {
     view
     returns (uint256 key, bytes32 blockHash)
   {
-    blockHash = blockhash(block.number);
+    blockHash = blockhash(block.number - 1);
     if (tokenId == _REF_NUMBER) {
       bytes32 hashedUriMemoir = keccak256(abi.encode(tokenURI, tokenIdMemoir));
       key = uint256(
