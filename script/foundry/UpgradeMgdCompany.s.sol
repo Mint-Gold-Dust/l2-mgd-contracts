@@ -11,8 +11,8 @@ import {ITransparentUpgradeableProxy} from
 
 contract UpgradeMgdCompanyL2Sync is Script {
   /// Initialize params
-  address private constant PROXY_ADMIN = 0x29FAd1fb39Ebd5090b12c3949462A64861DE7C6D;
-  address private constant PROXY = 0xa0e656f94bB38c6941DF92a5F950Dc8A67bb5940;
+  address private constant PROXY_ADMIN = 0x6D9755a1967Db29221A36D0f3F7b67dD447e2e36;
+  address private constant PROXY = 0xBA2a693d70D68667Cd346D69Da6F9D633C16f467;
 
   /// addresses
   address public newImplementation;
@@ -30,9 +30,9 @@ contract UpgradeMgdCompanyL2Sync is Script {
 
     // newImplementation = 0xD5E2fd38888ba0E2BdD20BB14B45EA3cBD3cA0e5; // original
 
-    ProxyAdmin proxyAdmin = ProxyAdmin(PROXY_ADMIN);
-    proxyAdmin.upgrade(ITransparentUpgradeableProxy(PROXY), newImplementation);
-    console.log("Succesfully upgraded MgdCompanyL2Sync proxy", PROXY);
+    // ProxyAdmin proxyAdmin = ProxyAdmin(PROXY_ADMIN);
+    // proxyAdmin.upgrade(ITransparentUpgradeableProxy(PROXY), newImplementation);
+    // console.log("Succesfully upgraded MgdCompanyL2Sync proxy", PROXY);
 
     vm.stopBroadcast();
   }
