@@ -321,7 +321,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver {
     view
     returns (uint256 voucherId, bytes32 blockHash)
   {
-    blockHash = blockhash(block.number);
+    blockHash = blockhash(block.number - 1);
     voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
