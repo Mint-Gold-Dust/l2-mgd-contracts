@@ -5,6 +5,7 @@ import {console} from "forge-std/console.sol";
 import {FileSystem} from "./utils/FileSystem.s.sol";
 import {MgdScriptConstants} from "./MgdScriptConstants.s.sol";
 import {TypeNFT} from "../../src/voucher/VoucherDataTypes.sol";
+import {Upgrader} from "./tasks/Upgrader.s.sol";
 
 import "./deploy/MgdDeployLibraries.s.sol";
 
@@ -15,7 +16,7 @@ enum Action {
     CONFIGURE
 }
 
-struct DeploymentConfiguration {
+struct ContractActionConfiguration {
     Action company;
     Action memoir;
     Action escrow;
@@ -35,28 +36,34 @@ struct DeploymentConfiguration {
 contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
     FileSystem fs;
 
-    DeploymentConfiguration config =
-        DeploymentConfiguration({
-            company: Action.DEPLOY,
-            memoir: Action.DEPLOY,
-            escrow: Action.DEPLOY,
-            mgd721: Action.DEPLOY,
-            mgd1155: Action.DEPLOY,
-            mgdVoucher721: Action.DEPLOY,
-            mgdVoucher1155: Action.DEPLOY,
-            mgdSetPrice: Action.DEPLOY,
-            mgdAuction: Action.DEPLOY
+    ContractActionConfiguration config =
+        ContractActionConfiguration({
+            company: Action.NOTHING,
+            memoir: Action.NOTHING,
+            escrow: Action.NOTHING,
+            mgd721: Action.NOTHING,
+            mgd1155: Action.NOTHING,
+            mgdVoucher721: Action.NOTHING,
+            mgdVoucher1155: Action.NOTHING,
+            mgdSetPrice: Action.NOTHING,
+            mgdAuction: Action.NOTHING
         });
 
     function run() public {
         fs = new FileSystem();
 
+        // Set this to true if you want to deploy the marketplace with vouchers
+        // otherwise, it will deploy the marketplace with the standard NFTs
+        bool marketPlaceWithVouchers = false;
+
         vm.startBroadcast();
-        executeDeployActions(false);
+        executeDeployActions(marketPlaceWithVouchers);
+        executeConfigureActions();
+        executeUpgradeActions();
         vm.stopBroadcast();
     }
 
-    function executeDeployActions(bool withVouchers) internal {
+    function executeDeployActions(bool marketPlaceWithVouchers) internal {
         string memory chainName = fs.getChainName(block.chainid);
         string memory pairChain = fs.getPairChainName(block.chainid);
 
@@ -87,7 +94,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             MgdL2NFTEscrowDeployer.deployMgdL2NFTEscrow(fs, params, false);
         }
         // MgdERC721PermitEscrowable
-        if (config.mgd721 == Action.DEPLOY && !withVouchers) {
+        if (config.mgd721 == Action.DEPLOY) {
             MgdERC721PermitEscrowableParams
                 memory params = MgdERC721PermitEscrowableParams({
                     mgdCompanyL2Sync: getSafeAddress(
@@ -102,7 +109,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
         }
         // MgdERC1155PermitEscrowable
-        if (config.mgd1155 == Action.DEPLOY && !withVouchers) {
+        if (config.mgd1155 == Action.DEPLOY) {
             MgdERC1155PermitEscrowableParams
                 memory params = MgdERC1155PermitEscrowableParams({
                     mgdCompanyL2Sync: getSafeAddress(
@@ -118,7 +125,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
                 );
         }
         // Mgd721L2Voucher
-        if (config.mgdVoucher721 == Action.DEPLOY && withVouchers) {
+        if (config.mgdVoucher721 == Action.DEPLOY) {
             Mgd721L2VoucherParams memory params = Mgd721L2VoucherParams({
                 mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName),
                 mgdL2NFTescrow: getSafeAddress("MgdL2NFTEscrow", pairChain),
@@ -131,7 +138,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             Mgd721L2VoucherDeployer.deployMgd721L2Voucher(fs, params, false);
         }
         // Mgd1155L2Voucher
-        if (config.mgdVoucher1155 == Action.DEPLOY && withVouchers) {
+        if (config.mgdVoucher1155 == Action.DEPLOY) {
             Mgd1155L2VoucherParams memory params = Mgd1155L2VoucherParams({
                 mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName),
                 mgdL2NFTescrow: getSafeAddress("MgdL2NFTEscrow", pairChain),
@@ -152,7 +159,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             params.mintGoldDustERC721Address = payable(
                 getSafeAddress(
-                    withVouchers
+                    marketPlaceWithVouchers
                         ? "Mgd721L2Voucher"
                         : "MgdERC721PermitEscrowable",
                     chainName
@@ -160,7 +167,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             params.mintGoldDustERC1155Address = payable(
                 getSafeAddress(
-                    withVouchers
+                    marketPlaceWithVouchers
                         ? "Mgd1155L2Voucher"
                         : "MgdERC1155PermitEscrowable",
                     chainName
@@ -181,7 +188,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             params.mintGoldDustERC721Address = payable(
                 getSafeAddress(
-                    withVouchers
+                    marketPlaceWithVouchers
                         ? "Mgd721L2Voucher"
                         : "MgdERC721PermitEscrowable",
                     chainName
@@ -189,7 +196,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             params.mintGoldDustERC1155Address = payable(
                 getSafeAddress(
-                    withVouchers
+                    marketPlaceWithVouchers
                         ? "Mgd1155L2Voucher"
                         : "MgdERC1155PermitEscrowable",
                     chainName
@@ -211,12 +218,17 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             );
             if (address(company.messenger()) == address(0)) {
                 company.setMessenger(getSafeAddress("Messenger", chainName));
+                console.log("Done! setting `messenger` in MgdCompanyL2Sync.");
             }
             company.setCrossDomainMGDCompany(
                 getPairChainId(block.chainid),
                 getSafeAddress("MgdCompanyL2Sync", pairChain)
             );
+            console.log(
+                "Done! setting `crossDomainMGDCompany` in MgdCompanyL2Sync!"
+            );
             company.setPublicKey(_MGD_SIGNER);
+            console.log("Done! setting `publicKey` in MgdCompanyL2Sync!");
         }
         // MgdL2NFTEscrow
         if (config.escrow == Action.CONFIGURE) {
@@ -228,12 +240,15 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
                     getSafeAddress("Mgd721L2Voucher", chainName),
                     TypeNFT.ERC721
                 );
+                console.log("Done! setting `voucher721L2` in MgdL2NFTEscrow!");
             }
+
             if (escrow.voucher1155L2() == address(0)) {
                 escrow.setVoucherL2(
                     getSafeAddress("Mgd1155L2Voucher", chainName),
                     TypeNFT.ERC1155
                 );
+                console.log("Done! setting `voucher1155L2` in MgdL2NFTEscrow!");
             }
         }
         // MgdERC721PermitEscrowable
@@ -244,11 +259,17 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             mgd721.setMintGoldDustSetPriceAddress(
                 getSafeAddress("MintGoldDustSetPrice", chainName)
             );
+            console.log("Done! setting `MintGoldDustSetPrice` in Mgd721!");
             mgd721.setMintGoldDustMarketplaceAuctionAddress(
                 getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
             );
+            console.log(
+                "Done! setting `MintGoldDustMarketplaceAuction` in Mgd721!"
+            );
+
             if (mgd721.escrow() == address(0)) {
                 mgd721.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+                console.log("Done! setting `escrow` in Mgd721!");
             }
         }
         // MgdERC1155PermitEscrowable
@@ -259,11 +280,16 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             mgd1155.setMintGoldDustSetPriceAddress(
                 getSafeAddress("MintGoldDustSetPrice", chainName)
             );
+            console.log("Done! setting `MintGoldDustSetPrice` in Mgd1155!");
             mgd1155.setMintGoldDustMarketplaceAuctionAddress(
                 getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
             );
+            console.log(
+                "Done! setting `MintGoldDustMarketplaceAuction` in Mgd1155!"
+            );
             if (mgd1155.escrow() == address(0)) {
                 mgd1155.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+                console.log("Done! setting `escrow` in Mgd1155!");
             }
         }
         // MintGoldDustSetPrice
@@ -274,6 +300,9 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             setPrice.setMintGoldDustMarketplace(
                 getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
             );
+            console.log(
+                "Done! setting `MintGoldDustMarketplace` in mgdSetPrice!"
+            );
         }
         // MintGoldDustMarketplaceAuction
         if (config.mgdAuction == Action.CONFIGURE) {
@@ -283,6 +312,141 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
             auction.setMintGoldDustMarketplace(
                 getSafeAddress("MintGoldDustSetPrice", chainName)
             );
+            console.log(
+                "Done! setting `MintGoldDustMarketplace` in mgdAuction!"
+            );
+        }
+    }
+
+    function executeUpgradeActions() internal {
+        string memory chainName = fs.getChainName(block.chainid);
+
+        // MgdCompanyL2Sync
+        if (config.company == Action.UPGRADE) {
+            address companyProxy = getSafeAddress(
+                "MgdCompanyL2Sync",
+                chainName
+            );
+            MgdCompanyL2SyncParams memory emptyParams;
+            address newImpl = address(
+                MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(
+                    fs,
+                    emptyParams,
+                    true
+                )
+            );
+            Upgrader.upgrade(fs, companyProxy, newImpl);
+        }
+        // MintGoldDustMemoir
+        if (config.memoir == Action.UPGRADE) {
+            address memoirProxy = getSafeAddress(
+                "MintGoldDustMemoir",
+                chainName
+            );
+            address newImpl = address(
+                MintGoldDustMemoirDeployer.deployMintGoldDustMemoir(fs, true)
+            );
+            Upgrader.upgrade(fs, memoirProxy, newImpl);
+        }
+        // MgdL2NFTEscrow
+        if (config.escrow == Action.UPGRADE) {
+            address escrowProxy = getSafeAddress("MgdL2NFTEscrow", chainName);
+            MgdL2NFTEscrowParams memory emptyParams;
+            address newImpl = address(
+                MgdL2NFTEscrowDeployer.deployMgdL2NFTEscrow(
+                    fs,
+                    emptyParams,
+                    true
+                )
+            );
+            Upgrader.upgrade(fs, escrowProxy, newImpl);
+        }
+        // MgdERC721PermitEscrowable
+        if (config.mgd721 == Action.UPGRADE) {
+            address mgd721Proxy = getSafeAddress(
+                "MgdERC721PermitEscrowable",
+                chainName
+            );
+            MgdERC721PermitEscrowableParams memory emptyParams;
+            address newImpl = address(
+                MgdERC721PermitEscrowableDeployer
+                    .deployMgdERC721PermitEscrowable(fs, emptyParams, true)
+            );
+            Upgrader.upgrade(fs, mgd721Proxy, newImpl);
+        }
+        // MgdERC1155PermitEscrowable
+        if (config.mgd1155 == Action.UPGRADE) {
+            address mgd1155Proxy = getSafeAddress(
+                "MgdERC1155PermitEscrowable",
+                chainName
+            );
+            MgdERC1155PermitEscrowableParams memory emptyParams;
+            address newImpl = address(
+                MgdERC1155PermitEscrowableDeployer
+                    .deployMgdERC1155PermitEscrowable(fs, emptyParams, true)
+            );
+            Upgrader.upgrade(fs, mgd1155Proxy, newImpl);
+        }
+        // Mgd721L2Voucher
+        if (config.mgdVoucher721 == Action.UPGRADE) {
+            address mgd721VoucherProxy = getSafeAddress(
+                "Mgd721L2Voucher",
+                chainName
+            );
+            Mgd721L2VoucherParams memory emptyParams;
+            address newImpl = address(
+                Mgd721L2VoucherDeployer.deployMgd721L2Voucher(
+                    fs,
+                    emptyParams,
+                    true
+                )
+            );
+            Upgrader.upgrade(fs, mgd721VoucherProxy, newImpl);
+        }
+        // Mgd1155L2Voucher
+        if (config.mgdVoucher1155 == Action.UPGRADE) {
+            address mgd1155VoucherProxy = getSafeAddress(
+                "Mgd1155L2Voucher",
+                chainName
+            );
+            Mgd1155L2VoucherParams memory emptyParams;
+            address newImpl = address(
+                Mgd1155L2VoucherDeployer.deployMgd1155L2Voucher(
+                    fs,
+                    emptyParams,
+                    true
+                )
+            );
+            Upgrader.upgrade(fs, mgd1155VoucherProxy, newImpl);
+        }
+        // MintGoldDustSetPrice
+        if (config.mgdSetPrice == Action.UPGRADE) {
+            address setPriceProxy = getSafeAddress(
+                "MintGoldDustSetPrice",
+                chainName
+            );
+            MintGoldDustSetPriceParams memory emptyParams;
+            address newImpl = address(
+                MintGoldDustSetPriceDeployer.deployMintGoldDustSetPrice(
+                    fs,
+                    emptyParams,
+                    true
+                )
+            );
+            Upgrader.upgrade(fs, setPriceProxy, newImpl);
+        }
+        // MintGoldDustMarketplaceAuction
+        if (config.mgdAuction == Action.UPGRADE) {
+            address auctionProxy = getSafeAddress(
+                "MintGoldDustMarketplaceAuction",
+                chainName
+            );
+            MintGoldDustMarketplaceAuctionParams memory emptyParams;
+            address newImpl = address(
+                MintGoldDustMarketplaceAuctionDeployer
+                    .deployMintGoldDustMarketplaceAuction(fs, emptyParams, true)
+            );
+            Upgrader.upgrade(fs, auctionProxy, newImpl);
         }
     }
 
