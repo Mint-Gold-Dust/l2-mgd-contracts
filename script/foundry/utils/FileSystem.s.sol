@@ -44,7 +44,7 @@ contract FileSystem is Script, ScriptConstants {
     pure
     returns (string memory path)
   {
-    path = string.concat("deployments/", chainName, "/", contractLabel);
+    path = string.concat("deployments-dev/", chainName, "/", contractLabel);
   }
 
   function createAndSaveFile(string memory path, string memory content) public {
