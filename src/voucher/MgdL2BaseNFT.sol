@@ -9,6 +9,7 @@ import {PausableUpgradeable} from
   "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {MgdCompanyL2Sync} from "./../MgdCompanyL2Sync.sol";
 import {MgdL1MarketData, L1VoucherData, TypeNFT} from "./VoucherDataTypes.sol";
+import {ManagePrimarySale} from "mgd-v2-contracts/libraries/MgdMarketPlaceDataTypes.sol";
 
 abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, ReentrancyGuardUpgradeable {
   /// Events
@@ -90,6 +91,15 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
 
   function tokenIdMemoir(uint256 id) public view returns (bytes memory) {
     return _tokenIdMemoir[id];
+  }
+
+  function getManagePrimarySale(uint256 _tokenId) public view returns (ManagePrimarySale memory) {
+    uint256 remaining = _voucherMarketData[_tokenId].primarySaleL2QuantityToSell;
+    return ManagePrimarySale({
+      owner: _voucherMarketData[_tokenId].artist,
+      soldout: remaining == 0,
+      amount: remaining
+    });
   }
 
   /// @notice Mint a native voucher that represents a new MintGoldDustNFT token in a L2.

@@ -181,12 +181,12 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
     if (config.escrow == Action.CONFIGURE) {
       MgdL2NFTEscrow escrow = MgdL2NFTEscrow(getSafeAddress("MgdL2NFTEscrow", chainName));
       if (escrow.voucher721L2() == address(0)) {
-        escrow.setVoucherL2(getSafeAddress("Mgd721L2Voucher", chainName), TypeNFT.ERC721);
+        escrow.setVoucherL2(getSafeAddress("Mgd721L2Voucher", pairChain), TypeNFT.ERC721);
         console.log("Done! setting `voucher721L2` in MgdL2NFTEscrow!");
       }
 
       if (escrow.voucher1155L2() == address(0)) {
-        escrow.setVoucherL2(getSafeAddress("Mgd1155L2Voucher", chainName), TypeNFT.ERC1155);
+        escrow.setVoucherL2(getSafeAddress("Mgd1155L2Voucher", pairChain), TypeNFT.ERC1155);
         console.log("Done! setting `voucher1155L2` in MgdL2NFTEscrow!");
       }
     }
@@ -202,7 +202,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
       console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd721!");
 
       if (mgd721.escrow() == address(0)) {
-        mgd721.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+        mgd721.setEscrow(getSafeAddress("MgdL2NFTEscrow", chainName));
         console.log("Done! setting `escrow` in Mgd721!");
       }
     }
@@ -217,7 +217,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
       );
       console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd1155!");
       if (mgd1155.escrow() == address(0)) {
-        mgd1155.setEscrow(getSafeAddress("MgdL2NFTEscrow", pairChain));
+        mgd1155.setEscrow(getSafeAddress("MgdL2NFTEscrow", chainName));
         console.log("Done! setting `escrow` in Mgd1155!");
       }
     }
