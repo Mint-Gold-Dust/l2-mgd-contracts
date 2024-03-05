@@ -351,7 +351,7 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
 
   /// @dev Revert if caller is not a marketplace
   function _checkMarketPlaceCaller(address caller) internal view {
-    if (caller != _mintGoldDustMarketplaceAuction || caller != _mintGoldDustSetPrice) {
+    if (caller != _mintGoldDustMarketplaceAuction && caller != _mintGoldDustSetPrice) {
       revert MgdL2Voucher__notAuthorized("marketplace");
     }
   }
