@@ -85,21 +85,74 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
 
   function transfer(address from, address to, uint256 tokenId, uint256 amount) external virtual;
 
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   */
+  function tokenIdArtist(uint256 id) external view returns (address) {
+    return _voucherMarketData[id].artist;
+  }
+
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   */
+  function hasTokenCollaborators(uint256 id) external view returns (bool) {
+    return _voucherMarketData[id].hasCollabs;
+  }
+
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   */
+  function getManagePrimarySale(uint256 id) external view returns (ManagePrimarySale memory) {
+    uint256 remaining = _voucherMarketData[id].primarySaleL2QuantityToSell;
+    return ManagePrimarySale({
+      owner: _voucherMarketData[id].artist,
+      soldout: remaining == 0,
+      amount: remaining
+    });
+  }
+
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   * @param index of the collaborator in the array
+   */
+  function tokenIdCollaboratorsPercentage(
+    uint256 id,
+    uint256 index
+  )
+    external
+    view
+    returns (uint256)
+  {
+    return _voucherMarketData[id].collabsPercentage[index];
+  }
+
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   * @param index of the collaborator in the array
+   */
+  function tokenCollaborators(uint256 id, uint256 index) external view returns (address) {
+    return _voucherMarketData[id].collabs[index];
+  }
+
+  /**
+   * @notice Getter required by the MGD Marketplace contracts.
+   * @param id the id of the voucher
+   */
+  function tokenIdRoyaltyPercentage(uint256 id) external view returns (uint256) {
+    return _voucherMarketData[id].royaltyPercent;
+  }
+
   function getVoucherMarketData(uint256 id) public view returns (MgdL1MarketData memory) {
     return _voucherMarketData[id];
   }
 
   function tokenIdMemoir(uint256 id) public view returns (bytes memory) {
     return _tokenIdMemoir[id];
-  }
-
-  function getManagePrimarySale(uint256 _tokenId) public view returns (ManagePrimarySale memory) {
-    uint256 remaining = _voucherMarketData[_tokenId].primarySaleL2QuantityToSell;
-    return ManagePrimarySale({
-      owner: _voucherMarketData[_tokenId].artist,
-      soldout: remaining == 0,
-      amount: remaining
-    });
   }
 
   /// @notice Mint a native voucher that represents a new MintGoldDustNFT token in a L2.
@@ -189,7 +242,7 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   /// @dev This function must only be called by authorized marketplace related addresses.
   /// @param voucherId The ID of the token whose primary sale quantity needs to be updated.
   /// @param sold The amount sold that needs to be subtracted from the remaining quantity._mintGoldDustSetPrice
-  function updatePrimarySaleQuantityToSold(uint256 voucherId, uint256 sold) external {
+  function updatePrimarySaleQuantityToSell(uint256 voucherId, uint256 sold) external {
     _checkMarketPlaceCaller(msg.sender);
     uint40 remaining = _voucherMarketData[voucherId].primarySaleL2QuantityToSell;
     if (remaining > 0) {
