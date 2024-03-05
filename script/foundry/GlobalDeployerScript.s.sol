@@ -221,6 +221,27 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         console.log("Done! setting `escrow` in Mgd1155!");
       }
     }
+    // Mgd721L2Voucher
+    if (config.mgdVoucher721 == Action.CONFIGURE) {
+      Mgd721L2Voucher mgd721Voucher = Mgd721L2Voucher(getSafeAddress("Mgd721L2Voucher", chainName));
+      mgd721Voucher.setMintGoldDustSetPrice(getSafeAddress("MintGoldDustSetPrice", chainName));
+      console.log("Done! setting `MintGoldDustSetPrice` in mgd721Voucher!");
+      mgd721Voucher.setMintGoldDustMarketplaceAuction(
+        getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+      );
+      console.log("Done! setting `MintGoldDustMarketplaceAuction` in mgd721Voucher!");
+    }
+    // Mgd1155L2Voucher
+    if (config.mgdVoucher1155 == Action.CONFIGURE) {
+      Mgd1155L2Voucher mgd1155Voucher =
+        Mgd1155L2Voucher(getSafeAddress("Mgd1155L2Voucher", chainName));
+      mgd1155Voucher.setMintGoldDustSetPrice(getSafeAddress("MintGoldDustSetPrice", chainName));
+      console.log("Done! setting `MintGoldDustSetPrice` in mgd1155Voucher!");
+      mgd1155Voucher.setMintGoldDustMarketplaceAuction(
+        getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
+      );
+      console.log("Done! setting `MintGoldDustMarketplaceAuction` in mgd1155Voucher!");
+    }
     // MintGoldDustSetPrice
     if (config.mgdSetPrice == Action.CONFIGURE) {
       MintGoldDustSetPrice setPrice =
