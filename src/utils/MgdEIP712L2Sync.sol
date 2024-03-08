@@ -44,8 +44,6 @@ abstract contract MgdEIP712L2Sync {
     0x61aced8c5770c0c87dc43720e6727c6d7e783173d88587bda0edf1a603612573;
 
   struct MgdEIP712L2Sync_Storage {
-    bytes32 _cachedHashedName;
-    bytes32 _cachedHashedVersion;
     uint256 _crossChainId;
     address _crossDomainMGDCompany; // Add more storage after here
   }
@@ -59,6 +57,11 @@ abstract contract MgdEIP712L2Sync {
   /// Methods
   function setCrossDomainMGDCompany(uint256 chainId, address mgdCompany) external virtual;
 
+  /**
+   * @notice Helper function to get the digest to sign
+   * @dev Requirements:
+   * - Should not be used within contract
+   */
   function getDigestToSign(
     CrossAction action,
     address account,
@@ -66,7 +69,7 @@ abstract contract MgdEIP712L2Sync {
     uint256 chainId,
     uint256 deadline
   )
-    public
+    external
     view
     returns (bytes32 digest)
   {
@@ -89,15 +92,6 @@ abstract contract MgdEIP712L2Sync {
   }
 
   /**
-   * @dev Initializes the domain separator and parameter caches.
-   */
-  function __EIP712_init() internal {
-    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
-    $._cachedHashedName = keccak256(bytes(NAME));
-    $._cachedHashedVersion = keccak256(bytes(VERSION));
-  }
-
-  /**
    * @notice Sets the cross domain MGDCompany address
    * @param chainId of domain
    * @param mgdCompany address of the L2 or L1 MGDCompany opposite to this.domain
@@ -109,6 +103,27 @@ abstract contract MgdEIP712L2Sync {
     emit SetCrossDomainMGDCompany(chainId, mgdCompany);
   }
 
+  /**
+   * @notice Verify a `signature` of a message was signed
+   * by an `expectedSigner`.
+   * @param expectedSigner is the signer address.
+   * @param structHash is the _signature of the eip712 object generated off chain.
+   * @param signature of the message
+   */
+  function _verifySignature(
+    address expectedSigner,
+    bytes32 structHash,
+    bytes memory signature
+  )
+    internal
+    view
+    returns (bool)
+  {
+    bytes32 digest = _hashTypedDataV4(structHash);
+    address signer = ECDSAUpgradeable.recover(digest, signature);
+    return signer == expectedSigner;
+  }
+
   function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
     return ECDSAUpgradeable.toTypedDataHash(_domainSeparator(), structHash);
   }
@@ -118,14 +133,12 @@ abstract contract MgdEIP712L2Sync {
     return block.chainid == _MAINNET_CHAINID ? $._crossChainId : block.chainid;
   }
 
-  function _EIP712NameHash() private view returns (bytes32) {
-    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
-    return $._cachedHashedName;
+  function _EIP712NameHash() private pure returns (bytes32) {
+    return keccak256(bytes(NAME));
   }
 
-  function _EIP712VersionHash() private view returns (bytes32) {
-    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
-    return $._cachedHashedVersion;
+  function _EIP712VersionHash() private pure returns (bytes32) {
+    return keccak256(bytes(VERSION));
   }
 
   function _domainSeparator() private view returns (bytes32) {
