@@ -51,10 +51,10 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     MgdCompanyL2Sync(l2mgdCompany).setValidator(Bob.addr, true);
 
     MgdCompanyL2Sync(l1mgdCompany).setMessenger(L1_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l1mgdCompany).setCrossDomainMGDCompany(l2mgdCompany);
+    MgdCompanyL2Sync(l1mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2mgdCompany);
 
     MgdCompanyL2Sync(l2mgdCompany).setMessenger(L2_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(l1mgdCompany);
+    MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(_ETHEREUM_CHAIN_ID, l1mgdCompany);
 
     _mockChainIdIs(_ETHEREUM_CHAIN_ID);
     vm.stopPrank();
@@ -83,15 +83,11 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
 
     vm.expectRevert(MintGoldDustCompany.Unauthorized.selector);
     vm.prank(foe);
-    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(
-      Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
-    );
+    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(Charlie.addr, true, deadline, signature);
 
     vm.expectRevert("Ownable: caller is not the owner");
     vm.prank(foe);
-    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(
-      Charlie.addr, true, _TEST_CHAIN_ID, deadline, signature
-    );
+    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(Charlie.addr, true, deadline, signature);
   }
 
   function test_whitelist(address artist) public {
@@ -110,9 +106,7 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     vm.expectEmit(true, false, false, true);
     emit SentMessage(l2mgdCompany, l1mgdCompany, message, nonce, 1_000_000);
     vm.prank(Bob.addr);
-    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(
-      artist, true, _TEST_CHAIN_ID, deadline, signature
-    );
+    MgdCompanyL2Sync(l1mgdCompany).whitelistWithL2Sync(artist, true, deadline, signature);
 
     assertEq(MgdCompanyL2Sync(l1mgdCompany).isArtistApproved(artist), true);
 
@@ -138,9 +132,7 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     vm.expectEmit(true, false, false, true);
     emit SentMessage(l2mgdCompany, l1mgdCompany, message, nonce, 1_000_000);
     vm.prank(Alice.addr);
-    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(
-      validator, true, _TEST_CHAIN_ID, deadline, signature
-    );
+    MgdCompanyL2Sync(l1mgdCompany).setValidatorWithL2Sync(validator, true, deadline, signature);
 
     assertEq(MgdCompanyL2Sync(l1mgdCompany).isAddressValidator(validator), true);
     _receiveCrossAction(sentCalldata, _TEST_CHAIN_ID);

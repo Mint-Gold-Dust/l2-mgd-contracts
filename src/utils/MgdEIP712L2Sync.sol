@@ -9,7 +9,19 @@ enum CrossAction {
   SetWhitelist
 }
 
-contract MgdEIP712L2Sync {
+/// @title MgdEIP712L2Sync
+/// @notice EIP721 version for MGDCompanyL2Sync
+/// @author Mint Gold Dust LLC
+/// @custom:contact klvh@mintgolddust.io
+abstract contract MgdEIP712L2Sync {
+  /// Events
+  /**
+   * @dev Emit when `setCrossDomainMGDCompany()` is called.
+   * @param chainId of cross domain
+   * @param mgdCompany address in the indicated domain
+   */
+  event SetCrossDomainMGDCompany(uint256 chainId, address mgdCompany);
+
   /// Errors
   error MgdEIP712L2Sync_getDigestToSign_unknownCrossAction();
 
@@ -34,6 +46,7 @@ contract MgdEIP712L2Sync {
   struct MgdEIP712L2Sync_Storage {
     bytes32 _cachedHashedName;
     bytes32 _cachedHashedVersion;
+    uint256 _crossChainId;
     address _crossDomainMGDCompany; // Add more storage after here
   }
 
@@ -44,6 +57,8 @@ contract MgdEIP712L2Sync {
   }
 
   /// Methods
+  function setCrossDomainMGDCompany(uint256 chainId, address mgdCompany) external virtual;
+
   function getDigestToSign(
     CrossAction action,
     address account,
@@ -82,8 +97,25 @@ contract MgdEIP712L2Sync {
     $._cachedHashedVersion = keccak256(bytes(VERSION));
   }
 
+  /**
+   * @notice Sets the cross domain MGDCompany address
+   * @param chainId of domain
+   * @param mgdCompany address of the L2 or L1 MGDCompany opposite to this.domain
+   */
+  function _setCrossDomainMGDCompany(uint256 chainId, address mgdCompany) internal {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    $._crossDomainMGDCompany = mgdCompany;
+    $._crossChainId = chainId;
+    emit SetCrossDomainMGDCompany(chainId, mgdCompany);
+  }
+
   function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
     return ECDSAUpgradeable.toTypedDataHash(_domainSeparator(), structHash);
+  }
+
+  function _getCrossDomain() internal view returns (uint256) {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    return block.chainid == _MAINNET_CHAINID ? $._crossChainId : block.chainid;
   }
 
   function _EIP712NameHash() private view returns (bytes32) {
@@ -103,7 +135,6 @@ contract MgdEIP712L2Sync {
   }
 
   function _getAuthorizedAddress() private view returns (address) {
-    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
-    return block.chainid == _MAINNET_CHAINID ? $._crossDomainMGDCompany : address(this);
+    return block.chainid == _MAINNET_CHAINID ? crossDomainMGDCompany() : address(this);
   }
 }
