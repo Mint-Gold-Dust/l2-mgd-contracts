@@ -210,27 +210,6 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     }
   }
 
-  /**
-   * @notice Verify a `signature` of a message was signed
-   * by an `expectedSigner`.
-   * @param expectedSigner is the signer address.
-   * @param structHash is the _signature of the eip712 object generated off chain.
-   * @param signature of the message
-   */
-  function _verifySignature(
-    address expectedSigner,
-    bytes32 structHash,
-    bytes memory signature
-  )
-    private
-    view
-    returns (bool)
-  {
-    bytes32 digest = _hashTypedDataV4(structHash);
-    address signer = ECDSAUpgradeable.recover(digest, signature);
-    return signer == expectedSigner;
-  }
-
   function _setValidator(address account, bool state) private {
     isAddressValidator[account] = state;
     emit ValidatorAdded(account, state);
