@@ -55,7 +55,13 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
 
     MgdCompanyL2Sync(l2mgdCompany).setMessenger(L2_CROSSDOMAIN_MESSENGER);
     MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1mgdCompany); // localhost
+
+    _mockChainIdIs(_ETHEREUM_CHAIN_ID);
     vm.stopPrank();
+  }
+
+  function _mockChainIdIs(uint256 chainId) internal {
+    vm.chainId(chainId);
   }
 
   function test_sendMessage() public {
@@ -110,7 +116,7 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
 
     assertEq(MgdCompanyL2Sync(l1mgdCompany).isArtistApproved(artist), true);
 
-    _receiveCrossAction(sentCalldata);
+    _receiveCrossAction(sentCalldata, _TEST_CHAIN_ID);
 
     assertEq(MgdCompanyL2Sync(l2mgdCompany).isArtistApproved(artist), true);
   }
@@ -137,11 +143,12 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     );
 
     assertEq(MgdCompanyL2Sync(l1mgdCompany).isAddressValidator(validator), true);
-    _receiveCrossAction(sentCalldata);
+    _receiveCrossAction(sentCalldata, _TEST_CHAIN_ID);
     assertEq(MgdCompanyL2Sync(l2mgdCompany).isAddressValidator(validator), true);
   }
 
-  function _receiveCrossAction(bytes memory data) public {
+  function _receiveCrossAction(bytes memory data, uint256 chainId) public {
+    _mockChainIdIs(chainId);
     vm.startPrank(L2_CROSSDOMAIN_MESSENGER);
     MgdCompanyL2Sync(l2mgdCompany).receiveL1Sync(data);
   }

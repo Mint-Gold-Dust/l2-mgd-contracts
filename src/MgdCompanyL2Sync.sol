@@ -37,6 +37,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
 
   /// Custom errors
   error MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(uint256 chainId);
+  error MGDCompanyL2Sync__onlyMainnet();
 
   ICrossDomainMessenger public messenger;
 
@@ -74,6 +75,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     onlyOwner
     isZeroAddress(account)
   {
+    _checkFromMainnet();
     _checkDeadline(deadline, true);
 
     bytes32 structHash =
@@ -106,6 +108,7 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     isValidatorOrOwner
     isZeroAddress(account)
   {
+    _checkFromMainnet();
     _checkDeadline(deadline, true);
 
     bytes32 structHash =
@@ -194,6 +197,12 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
       require(block.timestamp <= deadline, "Expired deadline");
     } else if (block.timestamp > deadline) {
       emit ExpiredDeadline(deadline);
+    }
+  }
+
+  function _checkFromMainnet() private view {
+    if (block.chainid != _MAINNET_CHAINID) {
+      revert MGDCompanyL2Sync__onlyMainnet();
     }
   }
 

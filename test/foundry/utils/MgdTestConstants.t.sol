@@ -2,7 +2,8 @@
 pragma solidity 0.8.18;
 
 contract MgdTestConstants {
-  // Test ChainId
+  // Test ChainIds
+  uint256 internal constant _ETHEREUM_CHAIN_ID = 1;
   uint256 internal constant _TEST_CHAIN_ID = 31337;
 
   // MgdCompanyL2Sync.initializer test constants

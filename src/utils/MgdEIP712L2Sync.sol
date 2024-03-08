@@ -25,7 +25,7 @@ contract MgdEIP712L2Sync {
   string public constant NAME = "MGDL2SyncEIP712";
   string public constant VERSION = "v0.0.1";
 
-  uint256 private constant _MAINNET_CHAINID = 0x1;
+  uint256 internal constant _MAINNET_CHAINID = 0x1;
   address private constant _MGD_COMPANY_ADDRESS = 0x2f00435f003d6568933586b4A272c6c6B481e0aD;
 
   bytes32 private _cachedHashedName;
