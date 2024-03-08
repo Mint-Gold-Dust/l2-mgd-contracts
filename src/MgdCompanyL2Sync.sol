@@ -16,10 +16,9 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
 
   /**
    * @dev Emit when `setCrossDomainMGDCompany()` is called.
-   * @param chainId of domain
    * @param mgdCompany address in the indicated domain
    */
-  event SetCrossDomainMGDCompany(uint256 indexed chainId, address mgdCompany);
+  event SetCrossDomainMGDCompany(address mgdCompany);
 
   /**
    * @dev Emit for soft failing functions.
@@ -40,9 +39,6 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
   error MGDCompanyL2Sync__onlyMainnet();
 
   ICrossDomainMessenger public messenger;
-
-  /// chain Id => MgdCompanyL2Sync address
-  mapping(uint256 => address) public crossDomainMGDCompany;
 
   modifier onlyCrossMessenger() {
     require(msg.sender == address(messenger));
@@ -155,22 +151,17 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
   }
 
   /**
-   * @notice Sets the mapping between a `chainId` and the {MGDCompany} contract
-   * address there
-   * @param chainId of the domain
-   * @param mgdCompany address in the indicated domain
+   * @notice Sets the cross domain MGDCompany address
+   * @param mgdCompany address of the L2 or L1 MGDCompany opposite to this.domain
    */
-  function setCrossDomainMGDCompany(
-    uint256 chainId,
-    address mgdCompany
-  )
+  function setCrossDomainMGDCompany(address mgdCompany)
     external
     onlyOwner
     isZeroAddress(mgdCompany)
   {
-    require(chainId != 0, "Invalid chainId");
-    crossDomainMGDCompany[chainId] = mgdCompany;
-    emit SetCrossDomainMGDCompany(chainId, mgdCompany);
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    $._crossDomainMGDCompany = mgdCompany;
+    emit SetCrossDomainMGDCompany(mgdCompany);
   }
 
   function _performL2Call(
@@ -186,10 +177,11 @@ contract MgdCompanyL2Sync is MintGoldDustCompany, MgdEIP712L2Sync {
     bytes memory message = abi.encodeWithSelector(
       this.receiveL1Sync.selector, abi.encode(action, account, state, deadline, mgdSignature)
     );
-    if (crossDomainMGDCompany[chainId] == address(0)) {
+    address crosscompany = crossDomainMGDCompany();
+    if (crosscompany == address(0)) {
       revert MgdCompanyL2Sync__performL2Call_undefinedMGDCompanyAtChainId(chainId);
     }
-    messenger.sendMessage(crossDomainMGDCompany[chainId], message, 1000000);
+    messenger.sendMessage(crosscompany, message, 1000000);
   }
 
   function _checkDeadline(uint256 deadline, bool withRevert) private {

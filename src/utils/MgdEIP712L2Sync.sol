@@ -10,27 +10,40 @@ enum CrossAction {
 }
 
 contract MgdEIP712L2Sync {
-  /// errors
+  /// Errors
   error MgdEIP712L2Sync_getDigestToSign_unknownCrossAction();
 
-  bytes32 private constant _TYPE_HASH =
-    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-
-  bytes32 internal constant _SETVALIDATOR_TYPEHASH =
-    keccak256("SetValidator(address account,bool state,uint256 chainId,uint256 deadline)");
-
-  bytes32 internal constant _WHITELIST_TYPEHASH =
-    keccak256("Whitelist(address account,bool state,uint256 chainId,uint256 deadline)");
-
+  /// Constants
   string public constant NAME = "MGDL2SyncEIP712";
   string public constant VERSION = "v0.0.1";
 
+  bytes32 internal constant _TYPE_HASH =
+    keccak256("MgdEIP712L2SyncDomain(string name,string version,address verifyingContract)");
+  bytes32 internal constant _SETVALIDATOR_TYPEHASH =
+    keccak256("SetValidator(address account,bool state,uint256 chainId,uint256 deadline)");
+  bytes32 internal constant _WHITELIST_TYPEHASH =
+    keccak256("Whitelist(address account,bool state,uint256 chainId,uint256 deadline)");
   uint256 internal constant _MAINNET_CHAINID = 0x1;
-  address private constant _MGD_COMPANY_ADDRESS = 0x2f00435f003d6568933586b4A272c6c6B481e0aD;
 
-  bytes32 private _cachedHashedName;
-  bytes32 private _cachedHashedVersion;
+  /// Storage
 
+  ///@dev keccak256(abi.encodePacked("MgdEIP712L2Sync_Storage"))
+  bytes32 private constant MgdEIP712L2SyncStorageLocation =
+    0x61aced8c5770c0c87dc43720e6727c6d7e783173d88587bda0edf1a603612573;
+
+  struct MgdEIP712L2Sync_Storage {
+    bytes32 _cachedHashedName;
+    bytes32 _cachedHashedVersion;
+    address _crossDomainMGDCompany; // Add more storage after here
+  }
+
+  function _getMgdEIP712L2SyncStorage() internal pure returns (MgdEIP712L2Sync_Storage storage $) {
+    assembly {
+      $.slot := MgdEIP712L2SyncStorageLocation
+    }
+  }
+
+  /// Methods
   function getDigestToSign(
     CrossAction action,
     address account,
@@ -55,36 +68,42 @@ contract MgdEIP712L2Sync {
     }
   }
 
+  function crossDomainMGDCompany() public view returns (address) {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    return $._crossDomainMGDCompany;
+  }
+
   /**
    * @dev Initializes the domain separator and parameter caches.
    */
   function __EIP712_init() internal {
-    _cachedHashedName = keccak256(bytes(NAME));
-    _cachedHashedVersion = keccak256(bytes(VERSION));
-  }
-
-  function _EIP712NameHash() internal view returns (bytes32) {
-    return _cachedHashedName;
-  }
-
-  function _EIP712VersionHash() internal view returns (bytes32) {
-    return _cachedHashedVersion;
-  }
-
-  /**
-   * @dev Returns the domain separator for mainnet ONLY signed messages for the {MintGoldDustCompany}
-   * contract address that relays admin changes to any L2.
-   *
-   */
-  function _domainSeparatorV4() internal view returns (bytes32) {
-    return keccak256(
-      abi.encode(
-        _TYPE_HASH, _EIP712NameHash(), _EIP712VersionHash(), _MAINNET_CHAINID, _MGD_COMPANY_ADDRESS
-      )
-    );
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    $._cachedHashedName = keccak256(bytes(NAME));
+    $._cachedHashedVersion = keccak256(bytes(VERSION));
   }
 
   function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
-    return ECDSAUpgradeable.toTypedDataHash(_domainSeparatorV4(), structHash);
+    return ECDSAUpgradeable.toTypedDataHash(_domainSeparator(), structHash);
+  }
+
+  function _EIP712NameHash() private view returns (bytes32) {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    return $._cachedHashedName;
+  }
+
+  function _EIP712VersionHash() private view returns (bytes32) {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    return $._cachedHashedVersion;
+  }
+
+  function _domainSeparator() private view returns (bytes32) {
+    return keccak256(
+      abi.encode(_TYPE_HASH, _EIP712NameHash(), _EIP712VersionHash(), _getAuthorizedAddress())
+    );
+  }
+
+  function _getAuthorizedAddress() private view returns (address) {
+    MgdEIP712L2Sync_Storage storage $ = _getMgdEIP712L2SyncStorage();
+    return block.chainid == _MAINNET_CHAINID ? $._crossDomainMGDCompany : address(this);
   }
 }

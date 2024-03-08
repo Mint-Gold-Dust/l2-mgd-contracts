@@ -170,9 +170,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         company.setMessenger(getSafeAddress("Messenger", chainName));
         console.log("Done! setting `messenger` in MgdCompanyL2Sync.");
       }
-      company.setCrossDomainMGDCompany(
-        getPairChainId(block.chainid), getSafeAddress("MgdCompanyL2Sync", pairChain)
-      );
+      company.setCrossDomainMGDCompany(getSafeAddress("MgdCompanyL2Sync", pairChain));
       console.log("Done! setting `crossDomainMGDCompany` in MgdCompanyL2Sync!");
       company.setPublicKey(_MGD_SIGNER);
       console.log("Done! setting `publicKey` in MgdCompanyL2Sync!");

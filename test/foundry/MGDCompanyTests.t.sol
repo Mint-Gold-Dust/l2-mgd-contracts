@@ -51,10 +51,10 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     MgdCompanyL2Sync(l2mgdCompany).setValidator(Bob.addr, true);
 
     MgdCompanyL2Sync(l1mgdCompany).setMessenger(L1_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l1mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l2mgdCompany); // localhost
+    MgdCompanyL2Sync(l1mgdCompany).setCrossDomainMGDCompany(l2mgdCompany);
 
     MgdCompanyL2Sync(l2mgdCompany).setMessenger(L2_CROSSDOMAIN_MESSENGER);
-    MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(_TEST_CHAIN_ID, l1mgdCompany); // localhost
+    MgdCompanyL2Sync(l2mgdCompany).setCrossDomainMGDCompany(l1mgdCompany);
 
     _mockChainIdIs(_ETHEREUM_CHAIN_ID);
     vm.stopPrank();
@@ -64,7 +64,7 @@ contract MGDCompanyTests is CommonSigners, BaseL2Constants, MgdTestConstants, He
     vm.chainId(chainId);
   }
 
-  function test_sendMessage() public {
+  function test_mockingSendMessage() public {
     bytes memory message = abi.encode("Hello World!");
     uint256 nonce = CDMessenger(L1_CROSSDOMAIN_MESSENGER).messageNonce();
     vm.expectEmit(true, false, false, true);
