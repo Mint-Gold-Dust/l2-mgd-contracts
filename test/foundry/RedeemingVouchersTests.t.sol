@@ -111,8 +111,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     company = MgdCompanyL2Sync(
       address(new TransparentUpgradeableProxy(companyImpl, proxyAdmin, companyInitData))
     );
-    // 1.1- Set messenger in company
+    // 1.1- Set messenger and publickey in company
     MgdCompanyL2Sync(company).setMessenger(L1_CROSSDOMAIN_MESSENGER);
+    MintGoldDustCompany(company).setPublicKey(MGDSigner.addr);
 
     // 2.- Deploying NFT Contracts
     bytes memory nftInitData;
@@ -395,26 +396,50 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     escrow.setRedeemClearanceKey(redeem721Key, true);
     escrow.setRedeemClearanceKey(redeem1155Key, true);
     vm.stopPrank();
-    assertEq(
-      escrow.getRedeemClearanceKey(
-        _721VId, address(nft721), _721tokenId, 1, Bob.addr, block1155Hash, market721Data, "", ""
-      ),
-      true
+    uint256 key721 = escrow.getRedeemClearanceKey(
+      _721VId, address(nft721), _721tokenId, 1, Bob.addr, block1155Hash, market721Data, "", ""
     );
-    assertEq(
-      escrow.getRedeemClearanceKey(
-        _1155VId,
-        address(nft1155),
-        _1155tokenId,
-        _EDITIONS,
-        Bob.addr,
-        block721Hash,
-        market1155Data,
-        "",
-        ""
-      ),
-      true
+    uint256 key1155 = escrow.getRedeemClearanceKey(
+      _1155VId,
+      address(nft1155),
+      _1155tokenId,
+      _EDITIONS,
+      Bob.addr,
+      block721Hash,
+      market1155Data,
+      "",
+      ""
     );
+    assertEq(escrow.redeemClearance(key721), true);
+    assertEq(escrow.redeemClearance(key1155), true);
+  }
+
+  function test_settingClearanceToRedeemWithSignatures() public {
+    MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
+    MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
+    (uint256 redeem721Key,) = generate_L1RedeemKey(
+      _721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data, "", ""
+    );
+    (uint256 redeem1155Key,) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data, "", ""
+    );
+    uint256 deadline = block.timestamp + 1 days;
+    bytes32 digest721 = escrow.getDigestToSign(Bob.addr, redeem721Key, true, deadline);
+    bytes memory signature721 = generate_packedSignature(digest721, MGDSigner.privateKey);
+
+    vm.prank(Bob.addr);
+    escrow.setRedeemClearanceKeyWithSignature(Bob.addr, redeem721Key, true, deadline, signature721);
+
+    bytes32 digest1155 = escrow.getDigestToSign(Bob.addr, redeem1155Key, true, deadline);
+    bytes memory signature1155 = generate_packedSignature(digest1155, MGDSigner.privateKey);
+
+    vm.prank(Bob.addr);
+    escrow.setRedeemClearanceKeyWithSignature(
+      Bob.addr, redeem1155Key, true, deadline, signature1155
+    );
+
+    assertEq(escrow.redeemClearance(redeem721Key), true);
+    assertEq(escrow.redeemClearance(redeem1155Key), true);
   }
 
   function test_clearanceToRedeemEvents() public {
@@ -456,6 +481,32 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     emit ReleasedEscrow(Bob.addr, address(nft721), _721tokenId, 1, _721VId, redeemKey);
     escrow.releaseFromEscrow(
       _721VId, address(nft721), _721tokenId, 1, Bob.addr, blockHash, marketData, "", ""
+    );
+    assertEq(nft721.ownerOf(_721tokenId), Bob.addr);
+    assertEq(nft721.getManagePrimarySale(_721tokenId).amount, 1);
+  }
+
+  function test_releaseFromEscrow721WithSignatures() public {
+    MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
+    (uint256 redeemKey, bytes32 blockHash) =
+      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
+    uint256 deadline = block.timestamp + 1 days;
+    bytes32 digest = escrow.getDigestToSign(Bob.addr, redeemKey, true, deadline);
+    bytes memory signature = generate_packedSignature(digest, MGDSigner.privateKey);
+
+    vm.prank(Bob.addr);
+    escrow.releaseFromEscrowWithSignature(
+      _721VId,
+      address(nft721),
+      _721tokenId,
+      1,
+      Bob.addr,
+      blockHash,
+      marketData,
+      "",
+      "",
+      deadline,
+      signature
     );
     assertEq(nft721.ownerOf(_721tokenId), Bob.addr);
     assertEq(nft721.getManagePrimarySale(_721tokenId).amount, 1);
@@ -510,6 +561,33 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     emit ReleasedEscrow(Bob.addr, address(nft1155), _1155tokenId, _EDITIONS, _1155VId, redeemKey);
     escrow.releaseFromEscrow(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, blockHash, marketData, "", ""
+    );
+    assertEq(nft1155.balanceOf(Bob.addr, _1155tokenId), _EDITIONS);
+    assertEq(nft1155.getManagePrimarySale(_1155tokenId).amount, _EDITIONS);
+  }
+
+  function test_releaseFromEscrow1155WithSignatures() public {
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
+    );
+    uint256 deadline = block.timestamp + 1 days;
+    bytes32 digest = escrow.getDigestToSign(Bob.addr, redeemKey, true, deadline);
+    bytes memory signature = generate_packedSignature(digest, MGDSigner.privateKey);
+
+    vm.prank(Bob.addr);
+    escrow.releaseFromEscrowWithSignature(
+      _1155VId,
+      address(nft1155),
+      _1155tokenId,
+      _EDITIONS,
+      Bob.addr,
+      blockHash,
+      marketData,
+      "",
+      "",
+      deadline,
+      signature
     );
     assertEq(nft1155.balanceOf(Bob.addr, _1155tokenId), _EDITIONS);
     assertEq(nft1155.getManagePrimarySale(_1155tokenId).amount, _EDITIONS);
