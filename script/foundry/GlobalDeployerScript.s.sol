@@ -194,13 +194,18 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
     if (config.mgd721 == Action.CONFIGURE) {
       MgdERC721PermitEscrowable mgd721 =
         MgdERC721PermitEscrowable(getSafeAddress("MgdERC721PermitEscrowable", chainName));
-      mgd721.setMintGoldDustSetPriceAddress(getSafeAddress("MintGoldDustSetPrice", chainName));
-      console.log("Done! setting `MintGoldDustSetPrice` in Mgd721!");
-      mgd721.setMintGoldDustMarketplaceAuctionAddress(
+      try mgd721.setMintGoldDustSetPriceAddress(getSafeAddress("MintGoldDustSetPrice", chainName)) {
+        console.log("Done! setting `MintGoldDustSetPrice` in Mgd721!");
+      } catch {
+        console.log("Skipped `setMintGoldDustSetPriceAddress` in Mgd721!");
+      }
+      try mgd721.setMintGoldDustMarketplaceAuctionAddress(
         getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
-      );
-      console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd721!");
-
+      ) {
+        console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd721!");
+      } catch {
+        console.log("Skipped `setMintGoldDustMarketplaceAuctionAddress` in Mgd721!");
+      }
       if (mgd721.escrow() == address(0)) {
         mgd721.setEscrow(getSafeAddress("MgdL2NFTEscrow", chainName));
         console.log("Done! setting `escrow` in Mgd721!");
@@ -210,12 +215,19 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
     if (config.mgd1155 == Action.CONFIGURE) {
       MgdERC1155PermitEscrowable mgd1155 =
         MgdERC1155PermitEscrowable(getSafeAddress("MgdERC1155PermitEscrowable", chainName));
-      mgd1155.setMintGoldDustSetPriceAddress(getSafeAddress("MintGoldDustSetPrice", chainName));
-      console.log("Done! setting `MintGoldDustSetPrice` in Mgd1155!");
-      mgd1155.setMintGoldDustMarketplaceAuctionAddress(
+      try mgd1155.setMintGoldDustSetPriceAddress(getSafeAddress("MintGoldDustSetPrice", chainName))
+      {
+        console.log("Done! setting `MintGoldDustSetPrice` in Mgd1155!");
+      } catch {
+        console.log("Skipped `setMintGoldDustSetPriceAddress` in Mgd1155!");
+      }
+      try mgd1155.setMintGoldDustMarketplaceAuctionAddress(
         getSafeAddress("MintGoldDustMarketplaceAuction", chainName)
-      );
-      console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd1155!");
+      ) {
+        console.log("Done! setting `MintGoldDustMarketplaceAuction` in Mgd1155!");
+      } catch {
+        console.log("Skipped `setMintGoldDustMarketplaceAuctionAddress` in Mgd1155!");
+      }
       if (mgd1155.escrow() == address(0)) {
         mgd1155.setEscrow(getSafeAddress("MgdL2NFTEscrow", chainName));
         console.log("Done! setting `escrow` in Mgd1155!");
