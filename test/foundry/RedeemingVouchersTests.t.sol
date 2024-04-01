@@ -37,7 +37,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     address indexed owner,
     bytes32 blockHash,
     MgdL1MarketData marketData,
-    uint256 indexed releaseKey
+    uint256 indexed releaseKey,
+    string tokenURI,
+    bytes memoir
   );
 
   event RedeemClearanceKey(uint256 indexed key, bool state);
@@ -349,7 +351,16 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     emit SentMessage(address(escrow), address(l2voucher721), message, nonce, 1_000_000);
     vm.expectEmit(true, false, false, true, address(l2voucher721));
     emit RedeemVoucher(
-      _721VId, address(nft721), _721tokenId, 1, Bob.addr, blockHash, marketData, expectedRedeemKey
+      _721VId,
+      address(nft721),
+      _721tokenId,
+      1,
+      Bob.addr,
+      blockHash,
+      marketData,
+      expectedRedeemKey,
+      _TOKEN_URI,
+      _MEMOIR
     );
     uint256 redeemKey = l2voucher721.redeemVoucherToL1(_721VId, Bob.addr);
     assertEq(redeemKey, expectedRedeemKey);
@@ -377,7 +388,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       Bob.addr,
       blockHash,
       marketData,
-      expectedRedeemKey
+      expectedRedeemKey,
+      _TOKEN_URI,
+      _MEMOIR
     );
     uint256 redeemKey = l2voucher1155.redeemVoucherToL1(Bob.addr, _1155VId, _EDITIONS, Bob.addr);
     assertEq(redeemKey, expectedRedeemKey);

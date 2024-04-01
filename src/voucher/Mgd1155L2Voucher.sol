@@ -154,6 +154,11 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
     override
     returns (uint256)
   {
+    RedeemVoucherData memory redeemData;
+    redeemData.voucherId = voucherId;
+    redeemData.amount = amount;
+    redeemData.receiver = receiver;
+
     if (receiver == escrowL1 || receiver == address(0)) {
       revert MgdL2BaseVoucher__redeemVoucherToL1_wrongReceiver();
     }
@@ -167,7 +172,7 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       marketData.primarySaleL2QuantityToSell = primarySaleToCarry;
       _voucherMarketData[voucherId].primarySaleL2QuantityToSell -= primarySaleToCarry;
     }
-    (uint256 releaseKey, bytes32 blockHash) = _generateL1RedeemKey(
+    (redeemData.releaseKey, redeemData.blockHash) = _generateL1RedeemKey(
       voucherId,
       voucherData.nft,
       voucherData.tokenId,
@@ -175,22 +180,11 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       receiver,
       marketData
     );
-
+    _emitRedeemVoucher(redeemData);
     _burnVoucherAndClearData(voucherId, amount, msg.sender);
-    _sendRedeemNoticeToL1(releaseKey);
+    _sendRedeemNoticeToL1(redeemData.releaseKey);
 
-    emit RedeemVoucher(
-      voucherId,
-      voucherData.nft,
-      voucherData.tokenId,
-      voucherData.representedAmount,
-      receiver,
-      blockHash,
-      marketData,
-      releaseKey
-    );
-
-    return releaseKey;
+    return redeemData.releaseKey;
   }
 
   /// @notice See {MgdL2BaseVoucher-_burnNativeVoucher()}
