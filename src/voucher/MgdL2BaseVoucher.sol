@@ -9,6 +9,15 @@ import {MgdL2NFTEscrow} from "../MgdL2NFTEscrow.sol";
 import {MintGoldDustMarketplace} from "mgd-v2-contracts/marketplace/MintGoldDustMarketplace.sol";
 
 abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
+  ///@dev Internal transport struct to avoid stack too deep
+  struct RedeemVoucherData {
+    uint256 voucherId;
+    uint256 amount;
+    address receiver;
+    bytes32 blockHash;
+    uint256 releaseKey;
+  }
+
   ///Events
   event L1NftMintClearance(uint256 indexed voucherId, bool state);
   event L1NftMinted(uint256 indexed voucherId);
@@ -21,7 +30,9 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     address indexed owner,
     bytes32 blockHash,
     MgdL1MarketData marketData,
-    uint256 indexed releaseKey
+    uint256 indexed releaseKey,
+    string tokenURI,
+    bytes memoir
   );
 
   event SetEscrow(address newEscrow);
@@ -300,6 +311,27 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
         keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData))
       );
     }
+  }
+
+  function _emitRedeemVoucher(
+    RedeemVoucherData memory data,
+    MgdL1MarketData memory marketData
+  )
+    internal
+  {
+    L1VoucherData memory voucherData = _voucherL1Data[data.voucherId];
+    emit RedeemVoucher(
+      data.voucherId,
+      voucherData.nft,
+      voucherData.tokenId,
+      data.amount,
+      data.receiver,
+      data.blockHash,
+      marketData,
+      data.releaseKey,
+      _tokenURIs[data.voucherId],
+      _tokenIdMemoir[data.voucherId]
+    );
   }
 
   function _clearVoucherData(uint256 voucherId) internal {

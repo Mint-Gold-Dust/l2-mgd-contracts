@@ -143,6 +143,11 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     override
     returns (uint256)
   {
+    RedeemVoucherData memory redeemData;
+    redeemData.voucherId = voucherId;
+    redeemData.amount = 1;
+    redeemData.receiver = receiver;
+
     if (!_isApprovedOrOwner(msg.sender, voucherId)) {
       revert MgdL2BaseVoucher__redeemVoucherToL1_notAllowed();
     }
@@ -152,7 +157,7 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     L1VoucherData memory voucherData = _voucherL1Data[voucherId];
     MgdL1MarketData memory marketData = _voucherMarketData[voucherId];
 
-    (uint256 releaseKey, bytes32 blockHash) = _generateL1RedeemKey(
+    (redeemData.releaseKey, redeemData.blockHash) = _generateL1RedeemKey(
       voucherId,
       voucherData.nft,
       voucherData.tokenId,
@@ -160,22 +165,11 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
       receiver,
       marketData
     );
-
+    _emitRedeemVoucher(redeemData, marketData);
     _burnVoucherAndClearData(voucherId);
-    _sendRedeemNoticeToL1(releaseKey);
+    _sendRedeemNoticeToL1(redeemData.releaseKey);
 
-    emit RedeemVoucher(
-      voucherId,
-      voucherData.nft,
-      voucherData.tokenId,
-      voucherData.representedAmount,
-      receiver,
-      blockHash,
-      marketData,
-      releaseKey
-    );
-
-    return releaseKey;
+    return redeemData.releaseKey;
   }
 
   /// @notice See {MgdL2BaseVolcher-burnNativeVoucher}
