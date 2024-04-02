@@ -347,8 +347,6 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
-    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
-    emit SentMessage(address(escrow), address(l2voucher721), message, nonce, 1_000_000);
     vm.expectEmit(true, false, false, true, address(l2voucher721));
     emit RedeemVoucher(
       _721VId,
@@ -359,10 +357,49 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       blockHash,
       marketData,
       expectedRedeemKey,
+      "",
+      ""
+    );
+    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(address(escrow), address(l2voucher721), message, nonce, 1_000_000);
+    uint256 redeemKey = l2voucher721.redeemVoucherToL1(_721VId, Bob.addr);
+    assertEq(redeemKey, expectedRedeemKey);
+  }
+
+  function test_redeemL2NativeVoucher721EventsAndRedeemKey() public {
+    MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(nativeVoucherIdFor721);
+    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      nativeVoucherIdFor721,
+      address(nft721),
+      REF_NUMBER,
+      1,
+      Bob.addr,
+      marketData,
       _TOKEN_URI,
       _MEMOIR
     );
-    uint256 redeemKey = l2voucher721.redeemVoucherToL1(_721VId, Bob.addr);
+
+    bytes memory message =
+      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
+
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, false, false, true, address(l2voucher721));
+    emit RedeemVoucher(
+      nativeVoucherIdFor721,
+      address(nft721),
+      REF_NUMBER,
+      1,
+      Bob.addr,
+      blockHash,
+      marketData,
+      expectedRedeemKey,
+      _TOKEN_URI,
+      _MEMOIR
+    );
+    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(address(escrow), address(l2voucher721), message, nonce, 1_000_000);
+    uint256 redeemKey = l2voucher721.redeemVoucherToL1(nativeVoucherIdFor721, Bob.addr);
     assertEq(redeemKey, expectedRedeemKey);
   }
 
@@ -377,8 +414,6 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
-    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
-    emit SentMessage(address(escrow), address(l2voucher1155), message, nonce, 1_000_000);
     vm.expectEmit(true, true, true, true, address(l2voucher1155));
     emit RedeemVoucher(
       _1155VId,
@@ -389,10 +424,50 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       blockHash,
       marketData,
       expectedRedeemKey,
+      "",
+      ""
+    );
+    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(address(escrow), address(l2voucher1155), message, nonce, 1_000_000);
+    uint256 redeemKey = l2voucher1155.redeemVoucherToL1(Bob.addr, _1155VId, _EDITIONS, Bob.addr);
+    assertEq(redeemKey, expectedRedeemKey);
+  }
+
+  function test_redeemL2NativeVoucher1155EventsAndRedeemKey() public {
+    MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
+    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+      nativeVoucherIdFor1155,
+      address(nft1155),
+      REF_NUMBER,
+      _EDITIONS,
+      Bob.addr,
+      marketData,
       _TOKEN_URI,
       _MEMOIR
     );
-    uint256 redeemKey = l2voucher1155.redeemVoucherToL1(Bob.addr, _1155VId, _EDITIONS, Bob.addr);
+
+    bytes memory message =
+      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
+
+    vm.prank(Bob.addr);
+    vm.expectEmit(true, true, true, true, address(l2voucher1155));
+    emit RedeemVoucher(
+      nativeVoucherIdFor1155,
+      address(nft1155),
+      REF_NUMBER,
+      _EDITIONS,
+      Bob.addr,
+      blockHash,
+      marketData,
+      expectedRedeemKey,
+      _TOKEN_URI,
+      _MEMOIR
+    );
+    vm.expectEmit(true, false, false, true, L2_CROSSDOMAIN_MESSENGER);
+    emit SentMessage(address(escrow), address(l2voucher1155), message, nonce, 1_000_000);
+    uint256 redeemKey =
+      l2voucher1155.redeemVoucherToL1(Bob.addr, nativeVoucherIdFor1155, _EDITIONS, Bob.addr);
     assertEq(redeemKey, expectedRedeemKey);
   }
 

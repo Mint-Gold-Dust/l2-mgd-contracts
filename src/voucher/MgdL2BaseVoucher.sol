@@ -313,9 +313,13 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     }
   }
 
-  function _emitRedeemVoucher(RedeemVoucherData memory data) internal {
+  function _emitRedeemVoucher(
+    RedeemVoucherData memory data,
+    MgdL1MarketData memory marketData
+  )
+    internal
+  {
     L1VoucherData memory voucherData = _voucherL1Data[data.voucherId];
-    MgdL1MarketData memory marketData = _voucherMarketData[data.voucherId];
     emit RedeemVoucher(
       data.voucherId,
       voucherData.nft,

@@ -180,7 +180,7 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       receiver,
       marketData
     );
-    _emitRedeemVoucher(redeemData);
+    _emitRedeemVoucher(redeemData, marketData);
     _burnVoucherAndClearData(voucherId, amount, msg.sender);
     _sendRedeemNoticeToL1(redeemData.releaseKey);
 

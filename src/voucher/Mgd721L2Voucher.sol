@@ -165,7 +165,7 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
       receiver,
       marketData
     );
-    _emitRedeemVoucher(redeemData);
+    _emitRedeemVoucher(redeemData, marketData);
     _burnVoucherAndClearData(voucherId);
     _sendRedeemNoticeToL1(redeemData.releaseKey);
 
