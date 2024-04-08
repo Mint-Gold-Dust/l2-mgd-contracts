@@ -1,5 +1,5 @@
 # 1.- run the script-01 on Mainnet: deploy implementations
-forge script --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/01_GlobalDeployerScript.s.sol
+forge script --via-ir --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/01_GlobalDeployerScript.s.sol
 
 # 2.- Via Safe Tx, upgrade the applicable contracts using json script on MAINNET.
  - upgrade company contract
@@ -10,13 +10,13 @@ forge script --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --ethers
  - set messenger address on upgraded company contract
 
 # 3.- run the script-02 on Mainnet: deploy the escrow contract that needs mainnet contracts upgraded
-forge script --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/02_GlobalDeployerScript.s.sol
+forge script --via-ir --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/02_GlobalDeployerScript.s.sol
 
 # 4.- run the script-03 on Base: with contracts upgraded on mainnet we can deploy on Base
-forge script --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/03_GlobalDeployerScript.s.sol
+forge script --via-ir --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/03_GlobalDeployerScript.s.sol
 
 # 5.- run script-04 on Base: we do configurations
-forge script --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/04_GlobalDeployerScript.s.sol
+forge script --via-ir --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/04_GlobalDeployerScript.s.sol
 
 # 6.- Via Safe Tx, perform configuration on mainnet using json script on MAINNET.
  - set crossdomain company in company contract
