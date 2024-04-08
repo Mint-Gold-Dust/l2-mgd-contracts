@@ -39,7 +39,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
   ContractActionConfiguration config = ContractActionConfiguration({
     company: Action.NOTHING,
     memoir: Action.NOTHING,
-    escrow: Action.NOTHING,
+    escrow: Action.DEPLOY,
     mgd721: Action.NOTHING,
     mgd1155: Action.NOTHING,
     mgdVoucher721: Action.NOTHING,
