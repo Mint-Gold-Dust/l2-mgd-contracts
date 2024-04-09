@@ -78,7 +78,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         auctionFinalMinute: _AUCTION_EXTENSION
       });
       MgdCompanyL2Sync company = MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(fs, params, false);
-      // company.setMessenger(getSafeAddress("Messenger", chainName)); // Set via Safe.app
+      company.setMessenger(getSafeAddress("Messenger", chainName));
     }
     // MintGoldDustMemoir
     if (config.memoir == Action.DEPLOY) {
