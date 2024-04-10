@@ -33,19 +33,19 @@ struct ContractActionConfiguration {
  * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
  * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/GlobalDeployerScript.s.sol
  */
-contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
+contract GlobalDeployerScriptThree is FileSystem, MgdScriptConstants {
   FileSystem fs;
 
   ContractActionConfiguration config = ContractActionConfiguration({
-    company: Action.CONFIGURE,
-    memoir: Action.NOTHING,
+    company: Action.DEPLOY,
+    memoir: Action.DEPLOY,
     escrow: Action.NOTHING,
     mgd721: Action.NOTHING,
     mgd1155: Action.NOTHING,
-    mgdVoucher721: Action.CONFIGURE,
-    mgdVoucher1155: Action.CONFIGURE,
-    mgdSetPrice: Action.CONFIGURE,
-    mgdAuction: Action.CONFIGURE
+    mgdVoucher721: Action.DEPLOY,
+    mgdVoucher1155: Action.DEPLOY,
+    mgdSetPrice: Action.DEPLOY,
+    mgdAuction: Action.DEPLOY
   });
 
   function run() public {
@@ -78,7 +78,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         auctionFinalMinute: _AUCTION_EXTENSION
       });
       MgdCompanyL2Sync company = MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(fs, params, false);
-      // company.setMessenger(getSafeAddress("Messenger", chainName)); // Set via Safe.app
+      company.setMessenger(getSafeAddress("Messenger", chainName));
     }
     // MintGoldDustMemoir
     if (config.memoir == Action.DEPLOY) {
@@ -174,7 +174,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         getPairChainId(block.chainid), getSafeAddress("MgdCompanyL2Sync", pairChain)
       );
       console.log("Done! setting `crossDomainMGDCompany` in MgdCompanyL2Sync!");
-      // company.setPublicKey(_MGD_SIGNER);
+      company.setPublicKey(_MGD_SIGNER);
       console.log("Done! setting `publicKey` in MgdCompanyL2Sync!");
     }
     // MgdL2NFTEscrow
