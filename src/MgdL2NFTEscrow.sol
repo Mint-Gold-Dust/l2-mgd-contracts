@@ -59,6 +59,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   error MgdL2NFTEscrow__createAndReleaseFromEscrow_wrongInputs();
   error MgdL2NFTEscrow__setVoucherL2_notAllowed();
   error MgdL2NFTEscrow__setVoucherL2_invalidSignature();
+  error MgdL2NFTEscrow___setRedeemClearance_burnedReleaseKey();
 
   bytes4 private constant _EMPTY_BYTES4 = 0x00000000;
   uint256 private constant _REF_NUMBER =
@@ -75,12 +76,15 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   address public voucher721L2;
   address public voucher1155L2;
 
+  mapping(uint256 => bool) public burnedReleaseKey;
+  mapping(uint256 => uint256) public recordedVoucherIdToTokenIds;
+
   /**
    * ///@dev This empty reserved space is put in place to allow future versions to add new
    * ///variables without shifting down storage in the inheritance chain.
    * ///See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
-  uint256[50] private __gap;
+  uint256[48] private __gap;
 
   modifier onlyCrossAuthorized() {
     if (msg.sender != address(messenger) && msg.sender != address(_mgdCompany)) {
@@ -340,11 +344,21 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     if (!redeemClearance[key]) {
       revert MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
     }
+    _setRedeemClearance(key, false);
+    burnedReleaseKey[key] = true;
+
     uint256 newTokenId;
     if (tokenId == _REF_NUMBER) {
       require(bytes(tokenURI).length > 0, "pass tokenURI");
-      newTokenId =
-        IEscrowableNFT(nft).mintFromL2Native(receiver, amount, marketData, tokenURI, memoir);
+      uint256 recordedId = recordedVoucherIdToTokenIds[voucherId];
+      if (recordedId == 0) {
+        newTokenId =
+          IEscrowableNFT(nft).mintFromL2Native(receiver, amount, marketData, tokenURI, memoir);
+        recordedVoucherIdToTokenIds[voucherId] = newTokenId;
+      } else {
+        IEscrowableNFT(nft).mintFromL2NativeRecorded(receiver, amount, recordedId, marketData);
+        newTokenId = recordedId;
+      }
     }
     if (newTokenId == 0) {
       IEscrowableNFT(nft).transfer(address(this), receiver, tokenId, amount);
@@ -456,6 +470,9 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   }
 
   function _setRedeemClearance(uint256 key, bool state) private {
+    if (burnedReleaseKey[key]) {
+      revert MgdL2NFTEscrow___setRedeemClearance_burnedReleaseKey();
+    }
     redeemClearance[key] = state;
     emit RedeemClearanceKey(key, state);
   }
