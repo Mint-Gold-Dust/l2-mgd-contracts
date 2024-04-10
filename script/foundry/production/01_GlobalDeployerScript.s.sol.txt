@@ -33,17 +33,17 @@ struct ContractActionConfiguration {
  * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
  * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/GlobalDeployerScript.s.sol
  */
-contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
+contract GlobalDeployerScriptOne is FileSystem, MgdScriptConstants {
   FileSystem fs;
 
   ContractActionConfiguration config = ContractActionConfiguration({
     company: Action.DEPLOY,
-    memoir: Action.DEPLOY,
+    memoir: Action.NOTHING,
     escrow: Action.NOTHING,
-    mgd721: Action.NOTHING,
-    mgd1155: Action.NOTHING,
-    mgdVoucher721: Action.DEPLOY,
-    mgdVoucher1155: Action.DEPLOY,
+    mgd721: Action.DEPLOY,
+    mgd1155: Action.DEPLOY,
+    mgdVoucher721: Action.NOTHING,
+    mgdVoucher1155: Action.NOTHING,
     mgdSetPrice: Action.DEPLOY,
     mgdAuction: Action.DEPLOY
   });
@@ -53,7 +53,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
 
     // Set this to true if you want to deploy the marketplace with vouchers
     // otherwise, it will deploy the marketplace with the standard NFTs
-    bool marketPlaceWithVouchers = true;
+    bool marketPlaceWithVouchers = false;
 
     vm.startBroadcast();
     executeDeployActions(marketPlaceWithVouchers);
@@ -77,8 +77,8 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         auctionDurationInMinutes: _AUCTION_DURATION,
         auctionFinalMinute: _AUCTION_EXTENSION
       });
-      MgdCompanyL2Sync company = MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(fs, params, false);
-      company.setMessenger(getSafeAddress("Messenger", chainName));
+      MgdCompanyL2Sync company = MgdCompanyL2SyncDeployer.deployMgdCompanyL2Sync(fs, params, true);
+      // company.setMessenger(getSafeAddress("Messenger", chainName)); // Set via Safe.app
     }
     // MintGoldDustMemoir
     if (config.memoir == Action.DEPLOY) {
@@ -95,7 +95,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
       MgdERC721PermitEscrowableParams memory params = MgdERC721PermitEscrowableParams({
         mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName)
       });
-      MgdERC721PermitEscrowableDeployer.deployMgdERC721PermitEscrowable(fs, params, false);
+      MgdERC721PermitEscrowableDeployer.deployMgdERC721PermitEscrowable(fs, params, true);
     }
     // MgdERC1155PermitEscrowable
     if (config.mgd1155 == Action.DEPLOY) {
@@ -103,7 +103,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
         mgdCompanyL2Sync: getSafeAddress("MgdCompanyL2Sync", chainName),
         baseURI: _BASE_URI
       });
-      MgdERC1155PermitEscrowableDeployer.deployMgdERC1155PermitEscrowable(fs, params, false);
+      MgdERC1155PermitEscrowableDeployer.deployMgdERC1155PermitEscrowable(fs, params, true);
     }
     // Mgd721L2Voucher
     if (config.mgdVoucher721 == Action.DEPLOY) {
@@ -139,7 +139,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
           marketPlaceWithVouchers ? "Mgd1155L2Voucher" : "MgdERC1155PermitEscrowable", chainName
         )
       );
-      MintGoldDustSetPriceDeployer.deployMintGoldDustSetPrice(fs, params, false);
+      MintGoldDustSetPriceDeployer.deployMintGoldDustSetPrice(fs, params, true);
     }
     // MintGoldDustMarketplaceAuction
     if (config.mgdAuction == Action.DEPLOY) {
@@ -155,7 +155,7 @@ contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
           marketPlaceWithVouchers ? "Mgd1155L2Voucher" : "MgdERC1155PermitEscrowable", chainName
         )
       );
-      MintGoldDustMarketplaceAuctionDeployer.deployMintGoldDustMarketplaceAuction(fs, params, false);
+      MintGoldDustMarketplaceAuctionDeployer.deployMintGoldDustMarketplaceAuction(fs, params, true);
     }
   }
 

@@ -33,7 +33,7 @@ struct ContractActionConfiguration {
  * $forge script --rpc-url $<RPC_CHAIN> --private-key $<PRIVATE_KEY> \
  * --slow --verify --etherscan-api-key $<etherscan_key> --broadcast script/foundry/GlobalDeployerScript.s.sol
  */
-contract GlobalDeployerScript is FileSystem, MgdScriptConstants {
+contract GlobalDeployerScriptTwo is FileSystem, MgdScriptConstants {
   FileSystem fs;
 
   ContractActionConfiguration config = ContractActionConfiguration({
