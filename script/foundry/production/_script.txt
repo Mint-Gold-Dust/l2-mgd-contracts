@@ -1,0 +1,106 @@
+# 1.- run the script-01 on Mainnet: deploy implementations
+forge script --via-ir --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/01_GlobalDeployerScript.s.sol
+
+== Logs with Deployer: 0x00e5BF77D3466fAB615F9E1604C69F2588a78Cd0  ==
+
+  Deploying MgdCompanyL2Sync...
+  MgdCompanyL2Sync implementation: 0xb7c8621F063C6b1A55cCD53eF13E01B76705afD1
+  Deploying MgdERC721PermitEscrowable...
+  MgdERC721PermitEscrowable implementation: 0x555a032651aFA84bB7E3e72CDC38AAa9440CA819
+  Deploying MgdERC1155PermitEscrowable...
+  MgdERC1155PermitEscrowable implementation: 0x02CAA34bdE04821FF7F491E5B155685E4eacEB6F
+  Deploying MintGoldDustSetPrice...
+  MintGoldDustSetPrice implementation: 0x9c70E7353cB03E776237CA682AF8765979A32F8E
+  Deploying MintGoldDustMarketplaceAuction...
+  MintGoldDustMarketplaceAuction implementation: 0x329D0Bf16abE96298CA6e1d3e8914D3aD7722592
+
+# 2.- Via Safe Tx, upgrade the applicable contracts using json script on MAINNET.
+ - upgrade company contract
+ - upgrade 721 contract
+ - upgrade 1155 contract
+ - upgrade auction contract
+ - ugprade setPrice contract
+ - set messenger address on upgraded company contract
+
+ https://etherscan.io/tx/0xf4f043038051fb8857eb46e59731629d98cc6d96899e962c095cfe2d6e3bb2b4#eventlog
+
+# 3.- run the script-02 on Mainnet: deploy the escrow contract that needs mainnet contracts upgraded
+forge script --via-ir --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/02_GlobalDeployerScript.s.sol
+
+== Logs with Deployer: 0x00e5BF77D3466fAB615F9E1604C69F2588a78Cd ==
+  Deploying MgdL2NFTEscrow...
+  MgdL2NFTEscrow implementation: 0xcAE7BD28c72802a82f2A74d73134051C9Ee1747B
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000cae7bd28c72802a82f2a74d73134051c9ee1747b00000000000000000000000053e3a7ece7555c5bc69afbd8df8df7b056339ab000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000024c4d66de80000000000000000000000002f00435f003d6568933586b4a272c6c6b481e0
+
+# 4.- run the script-03 on Base: with contracts upgraded on mainnet we can deploy on Base
+forge script --via-ir --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/03_GlobalDeployerScript.s.sol
+
+== Logs ==
+  Deploying MgdCompanyL2Sync...
+  MgdCompanyL2Sync implementation: 0xD5E2fd38888ba0E2BdD20BB14B45EA3cBD3cA0e5
+  Deploying ProxyAdmin...
+  ProxyAdmin {ProxyAdmin}: 0x54B89630089E9fE3f5138b38a2f84Bb9Ce4F2978
+  Saved ProxyAdmin: 0x54B89630089E9fE3f5138b38a2f84Bb9Ce4F2978
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000d5e2fd38888ba0e2bdd20bb14b45ea3cbd3ca0e500000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f2978000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000e48142951a0000000000000000000000004c56bb56b27cc3bb46fa5925dcf34bf068c4558e000000000000000000000000000000000000000000000000d02ab486cedc00000000000000000000000000000000000000000000000000004563918244f4000000000000000000000000000000000000000000000000000029a2241af62c0000000000000000000000000000000000000000000000000001158e460913d000000000000000000000000000000000000000000000000000000000000000015180000000000000000000000000000000000000000000000000000000000000012c00000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0xBb78E27Ec1236D46E6D51b130665b701Cc5D89d0
+  Creating a new record at deployments/base/MgdCompanyL2Sync
+  Saved MgdCompanyL2Sync filesystem: 0xBb78E27Ec1236D46E6D51b130665b701Cc5D89d0
+  Deploying MintGoldDustMemoir...
+  MintGoldDustMemoir implementation: 0xB33ce29eeDc7c7c30461C284ecCB13621cb77278
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000b33ce29eedc7c7c30461c284eccb13621cb7727800000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f297800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0x5A9894019b04E5b02FB8Aa6175F468c7bcDdBB95
+  Creating a new record at deployments/base/MintGoldDustMemoir
+  Saved MintGoldDustMemoir filesystem: 0x5A9894019b04E5b02FB8Aa6175F468c7bcDdBB95
+  Deploying Mgd721L2Voucher...
+  Mgd721L2Voucher implementation: 0xE11C40B42CC0eD99060B46051F18586671a1Cafb
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000e11c40b42cc0ed99060b46051f18586671a1cafb00000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f297800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000084f8c8765e000000000000000000000000bb78e27ec1236d46e6d51b130665b701cc5d89d0000000000000000000000000a2cb07bb0dee0c1f89de033409e88d1c1b35c3e40000000000000000000000004b0dc0900dde9d4f15115bee56554857ae0becb0000000000000000000000000420000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0x2F38ddce223b798639E7B6EC3311c451a3f699a9
+  Creating a new record at deployments/base/Mgd721L2Voucher
+  Saved Mgd721L2Voucher filesystem: 0x2F38ddce223b798639E7B6EC3311c451a3f699a9
+  Deploying Mgd1155L2Voucher...
+  Mgd1155L2Voucher implementation: 0xa2AFf072ebD853E63Cb08BA7Aff8776dd436B74C
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000a2aff072ebd853e63cb08ba7aff8776dd436b74c00000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f297800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000084f8c8765e000000000000000000000000bb78e27ec1236d46e6d51b130665b701cc5d89d0000000000000000000000000a2cb07bb0dee0c1f89de033409e88d1c1b35c3e400000000000000000000000047356c2efdf0ea13ef48ecae9651d6bb8a524dd9000000000000000000000000420000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0x22fDebeCDE8De8eb0035c3ad79Df9d16Acfd6Ec0
+  Creating a new record at deployments/base/Mgd1155L2Voucher
+  Saved Mgd1155L2Voucher filesystem: 0x22fDebeCDE8De8eb0035c3ad79Df9d16Acfd6Ec0
+  Deploying MintGoldDustSetPrice...
+  MintGoldDustSetPrice implementation: 0x8446999d81490993754F4f162858f70104b17C7a
+  TransparentUpgradeableProxy constructor arguments:
+  0x0000000000000000000000008446999d81490993754f4f162858f70104b17c7a00000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f297800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000064ef3790db000000000000000000000000bb78e27ec1236d46e6d51b130665b701cc5d89d00000000000000000000000002f38ddce223b798639e7b6ec3311c451a3f699a900000000000000000000000022fdebecde8de8eb0035c3ad79df9d16acfd6ec000000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0x64c20dD1C54B60bef12bE7143E4d50F37D7062df
+  Creating a new record at deployments/base/MintGoldDustSetPrice
+  Saved MintGoldDustSetPrice filesystem: 0x64c20dD1C54B60bef12bE7143E4d50F37D7062df
+  Deploying MintGoldDustMarketplaceAuction...
+  MintGoldDustMarketplaceAuction implementation: 0xEbd29a20c769166d86837E02783fC955a7Aa8c52
+  TransparentUpgradeableProxy constructor arguments:
+  0x000000000000000000000000ebd29a20c769166d86837e02783fc955a7aa8c5200000000000000000000000054b89630089e9fe3f5138b38a2f84bb9ce4f297800000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000064ef3790db000000000000000000000000bb78e27ec1236d46e6d51b130665b701cc5d89d00000000000000000000000002f38ddce223b798639e7b6ec3311c451a3f699a900000000000000000000000022fdebecde8de8eb0035c3ad79df9d16acfd6ec000000000000000000000000000000000000000000000000000000000
+  TransparentUpgradeableProxy deployed: 0xaC185cCb43bD3C1f0689E64D199Fcbd5D53e35D4
+  Creating a new record at deployments/base/MintGoldDustMarketplaceAuction
+  Saved MintGoldDustMarketplaceAuction filesystem: 0xaC185cCb43bD3C1f0689E64D199Fcbd5D53e35D4
+
+# 5.- run script-04 on Base: we do configurations
+forge script --via-ir --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/04_GlobalDeployerScript.s.sol
+
+== Logs ==
+  Done! setting `crossDomainMGDCompany` in MgdCompanyL2Sync!
+  Done! setting `MintGoldDustSetPrice` in mgd721Voucher!
+  Done! setting `MintGoldDustMarketplaceAuction` in mgd721Voucher!
+  Done! setting `MintGoldDustSetPrice` in mgd1155Voucher!
+  Done! setting `MintGoldDustMarketplaceAuction` in mgd1155Voucher!
+  Done! setting `MintGoldDustMarketplace` in mgdSetPrice!
+  Done! setting `MintGoldDustMarketplace` in mgdAuction!
+
+# 6.- Via Safe Tx, perform configuration on mainnet using json script on MAINNET.
+ - set crossdomain company in company contract
+ - set the escrow contract in 721
+ - set the escrow contract in 1155
+ - set voucher721 contract in escrow
+ - set voucher1155 contract in escrow
+
+https://etherscan.io/tx/0xd8bb11dae0989c47d46ed8ffc24bc9c08e8c515f807d8b1d7e0eef447fbcfd10
+https://etherscan.io/tx/0xe0fc47886520bf5cb68d563b75831c906d4342e6024b2be3ca9e4d2b039811e4
