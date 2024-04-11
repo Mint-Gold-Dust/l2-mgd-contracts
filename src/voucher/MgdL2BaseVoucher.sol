@@ -290,7 +290,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     MgdL1MarketData memory marketData
   )
     internal
@@ -303,12 +303,14 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
         keccak256(abi.encode(_tokenURIs[voucherId], _tokenIdMemoir[voucherId]));
       key = uint256(
         keccak256(
-          abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData, hashedUriMemoir)
+          abi.encode(
+            voucherId, nft, tokenId, amount, receiver, blockHash, marketData, hashedUriMemoir
+          )
         )
       );
     } else {
       key = uint256(
-        keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData))
+        keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
       );
     }
   }
