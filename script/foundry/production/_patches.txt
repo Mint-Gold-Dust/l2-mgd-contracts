@@ -1,0 +1,11 @@
+04-11-2024
+1.- ON ETHEREUM: Deploy implementations for MgdL2NFTEscrow and MgdERC1155PermitEscrowable
+forge script --via-ir --rpc-url $RPC_MAINNET --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_MAINNET --broadcast script/foundry/production/05_patch04_11_2024.s.sol
+
+2.- ON ETHEREUM: Safe tx to upgrade MgdL2NFTEscrow and MgdERC1155PermitEscrowable 
+proxyAdmin="0x53E3a7Ece7555c5bC69AfbD8Df8Df7b056339Ab0",
+0xa2cb07Bb0dEe0c1F89dE033409e88D1C1b35C3e4 escrow
+0x47356C2EFdf0eA13eF48ecAE9651D6BB8a524dd9 mgd1155
+
+3.- ON BASE: Deploy implementations for Mgd721L2Voucher and Mgd1155L2Voucher
+forge script --via-ir --rpc-url $RPC_BASE --private-key $PKEY --slow --verify --etherscan-api-key $KEY_ETHERSCAN_BASE --broadcast script/foundry/production/06_patch04_11_2024.s.sol
