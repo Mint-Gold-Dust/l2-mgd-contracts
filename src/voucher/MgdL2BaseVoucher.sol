@@ -285,7 +285,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     identifier = uint256(keccak256(abi.encode(blockhash(block.number - 1), tokenData)));
   }
 
-  function _generateL1RedeemKey(
+  function _generateL1ReleaseKey(
     uint256 voucherId,
     address nft,
     uint256 tokenId,

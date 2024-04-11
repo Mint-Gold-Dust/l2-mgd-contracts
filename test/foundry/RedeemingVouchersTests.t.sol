@@ -340,7 +340,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_redeemVoucher721EventsAndRedeemKey() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
     (uint256 expectedRedeemKey, bytes32 blockHash) =
-      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
+      generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
 
     bytes memory message =
       abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
@@ -368,7 +368,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_redeemL2NativeVoucher721EventsAndRedeemKey() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(nativeVoucherIdFor721);
-    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor721,
       address(nft721),
       REF_NUMBER,
@@ -405,7 +405,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_redeemVoucher1155EventsAndRedeemKey() public {
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
     );
 
@@ -435,7 +435,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_redeemL2NativeVoucher1155EventsAndRedeemKey() public {
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
-    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 expectedRedeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor1155,
       address(nft1155),
       REF_NUMBER,
@@ -474,10 +474,10 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_settingClearanceToRedeem() public {
     MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
     MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 redeem721Key, bytes32 block1155Hash) = generate_L1RedeemKey(
+    (uint256 redeem721Key, bytes32 block1155Hash) = generate_L1ReleaseKey(
       _721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data, "", ""
     );
-    (uint256 redeem1155Key, bytes32 block721Hash) = generate_L1RedeemKey(
+    (uint256 redeem1155Key, bytes32 block721Hash) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data, "", ""
     );
     vm.startPrank(L1_CROSSDOMAIN_MESSENGER);
@@ -505,10 +505,10 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_settingClearanceToRedeemWithSignatures() public {
     MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
     MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 redeem721Key,) = generate_L1RedeemKey(
+    (uint256 redeem721Key,) = generate_L1ReleaseKey(
       _721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data, "", ""
     );
-    (uint256 redeem1155Key,) = generate_L1RedeemKey(
+    (uint256 redeem1155Key,) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data, "", ""
     );
     uint256 deadline = block.timestamp + 1 days;
@@ -533,7 +533,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_clearanceToRedeemEvents() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
     (uint256 redeemKey,) =
-      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
+      generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
     vm.expectEmit(true, false, false, true, address(escrow));
     emit RedeemClearanceKey(redeemKey, true);
@@ -544,10 +544,10 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     vm.assume(foe != address(0) && foe != L1_CROSSDOMAIN_MESSENGER && foe != company.owner());
     MgdL1MarketData memory market721Data = l2voucher721.getVoucherMarketData(_721VId);
     MgdL1MarketData memory market1155Data = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 redeem721Key,) = generate_L1RedeemKey(
+    (uint256 redeem721Key,) = generate_L1ReleaseKey(
       _721VId, address(nft721), _721tokenId, 1, Bob.addr, market721Data, "", ""
     );
-    (uint256 redeem1155Key,) = generate_L1RedeemKey(
+    (uint256 redeem1155Key,) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data, "", ""
     );
     vm.startPrank(foe);
@@ -561,7 +561,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_releaseFromEscrow721AndEvents() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
     (uint256 redeemKey, bytes32 blockHash) =
-      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
+      generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
     escrow.setRedeemClearanceKey(redeemKey, true);
     vm.prank(Bob.addr);
@@ -577,7 +577,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
   function test_releaseFromEscrow721WithSignatures() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(_721VId);
     (uint256 redeemKey, bytes32 blockHash) =
-      generate_L1RedeemKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
+      generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
     uint256 deadline = block.timestamp + 1 days;
     bytes32 digest = escrow.getDigestToSign(Bob.addr, redeemKey, true, deadline);
     bytes memory signature = generate_packedSignature(digest, MGDSigner.privateKey);
@@ -602,7 +602,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_releaseL2NativeFromEscrow721AndEvents() public {
     MgdL1MarketData memory marketData = l2voucher721.getVoucherMarketData(nativeVoucherIdFor721);
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor721,
       address(nft721),
       REF_NUMBER,
@@ -639,7 +639,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_releaseFromEscrow1155AndEvents() public {
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
     );
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
@@ -656,7 +656,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_releaseFromEscrow1155WithSignatures() public {
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
     );
     uint256 deadline = block.timestamp + 1 days;
@@ -686,7 +686,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(_1155VId);
     // We override marketdata to simulate actions in L2
     marketData.primarySaleL2QuantityToSell = partialAmount;
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       _1155VId, address(nft1155), _1155tokenId, partialAmount, Bob.addr, marketData, "", ""
     );
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
@@ -713,7 +713,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
 
   function test_releaseL2NativeFromEscrow1155() public {
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor1155,
       address(nft1155),
       REF_NUMBER,
@@ -755,7 +755,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
     // Replace partialAmount in marketData to simulate actions in L2
     marketData.primarySaleL2QuantityToSell = partialAmount;
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor1155,
       address(nft1155),
       REF_NUMBER,
@@ -797,7 +797,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     MgdL1MarketData memory marketData = l2voucher1155.getVoucherMarketData(nativeVoucherIdFor1155);
     // Replace partialAmount in marketData to simulate actions in L2
     marketData.primarySaleL2QuantityToSell = partialAmount;
-    (uint256 redeemKey, bytes32 blockHash) = generate_L1RedeemKey(
+    (uint256 redeemKey, bytes32 blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor1155,
       address(nft1155),
       REF_NUMBER,
@@ -836,7 +836,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     partialAmount = 3;
     // Replace partialAmount in marketData to simulate actions in L2
     marketData.primarySaleL2QuantityToSell = partialAmount;
-    (redeemKey, blockHash) = generate_L1RedeemKey(
+    (redeemKey, blockHash) = generate_L1ReleaseKey(
       nativeVoucherIdFor1155,
       address(nft1155),
       REF_NUMBER,

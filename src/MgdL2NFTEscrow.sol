@@ -187,7 +187,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     pure
     returns (uint256)
   {
-    return _generateL1RedeemKey(
+    return _generateL1ReleaseKey(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, tokenIdMemoir
     );
   }
@@ -405,7 +405,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
-  function _generateL1RedeemKey(
+  function _generateL1ReleaseKey(
     uint256 voucherId,
     address nft,
     uint256 tokenId,

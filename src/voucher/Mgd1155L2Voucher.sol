@@ -172,7 +172,7 @@ contract Mgd1155L2Voucher is MgdL2BaseVoucher, ERC1155Permit, Almost1155Upgradea
       marketData.primarySaleL2QuantityToSell = primarySaleToCarry;
       _voucherMarketData[voucherId].primarySaleL2QuantityToSell -= primarySaleToCarry;
     }
-    (redeemData.releaseKey, redeemData.blockHash) = _generateL1RedeemKey(
+    (redeemData.releaseKey, redeemData.blockHash) = _generateL1ReleaseKey(
       voucherId, voucherData.nft, voucherData.tokenId, redeemData.amount, receiver, marketData
     );
     _emitRedeemVoucher(redeemData, marketData);
