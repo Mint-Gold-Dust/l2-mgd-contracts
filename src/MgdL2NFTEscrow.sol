@@ -33,7 +33,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     uint256 indexed voucherId
   );
 
-  /// @dev Emit when `setRedeemClearanceKey()` is called.
+  /// @dev Emit when `setReleaseKeyClearance()` is called.
   event RedeemClearanceKey(uint256 indexed key, bool state);
 
   /// @dev Emit when NFT is released from escrow.
@@ -135,14 +135,14 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   }
 
   ///@notice Called by authorized cross domain messenger to clear release of escrowed NFT.
-  function setRedeemClearanceKey(uint256 key, bool state) external onlyCrossAuthorized {
+  function setReleaseKeyClearance(uint256 key, bool state) external onlyCrossAuthorized {
     _setRedeemClearance(key, state);
   }
 
   /**
    * @notice Set redeem clearance with an authorized signature
    */
-  function setRedeemClearanceKeyWithSignature(
+  function setReleaseKeyClearanceWithSignature(
     address receiver,
     uint256 key,
     bool state,
@@ -172,7 +172,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   /// @param receiver who will receive nft
   /// @param blockHash of tx in L2 where {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called
   /// @param marketData status of voucher when redeem call was initiated in L2
-  function getRedeemClearanceKey(
+  function getReleaseKeyClearance(
     uint256 voucherId,
     address nft,
     uint256 tokenId,
@@ -216,7 +216,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   )
     external
   {
-    uint256 key = getRedeemClearanceKey(
+    uint256 key = getReleaseKeyClearance(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, memoir
     );
     _releaseFromEscrow(key, voucherId, receiver, nft, tokenId, amount, marketData, tokenURI, memoir);
@@ -238,10 +238,10 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   )
     external
   {
-    uint256 key = getRedeemClearanceKey(
+    uint256 key = getReleaseKeyClearance(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, memoir
     );
-    setRedeemClearanceKeyWithSignature(receiver, key, true, deadline, signature);
+    setReleaseKeyClearanceWithSignature(receiver, key, true, deadline, signature);
     _releaseFromEscrow(key, voucherId, receiver, nft, tokenId, amount, marketData, tokenURI, memoir);
   }
 

@@ -257,7 +257,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
 
   function _sendRedeemNoticeToL1(uint256 key) internal {
     bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, key, true);
+      abi.encodeWithSelector(MgdL2NFTEscrow.setReleaseKeyClearance.selector, key, true);
     messenger.sendMessage(escrowL1, message, 1000000);
   }
 

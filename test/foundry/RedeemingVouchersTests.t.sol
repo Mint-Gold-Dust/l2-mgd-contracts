@@ -342,8 +342,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     (uint256 expectedRedeemKey, bytes32 blockHash) =
       generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
 
-    bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    bytes memory message = abi.encodeWithSelector(
+      MgdL2NFTEscrow.setReleaseKeyClearance.selector, expectedRedeemKey, true
+    );
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
@@ -379,8 +380,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _MEMOIR
     );
 
-    bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    bytes memory message = abi.encodeWithSelector(
+      MgdL2NFTEscrow.setReleaseKeyClearance.selector, expectedRedeemKey, true
+    );
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
@@ -409,8 +411,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
     );
 
-    bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    bytes memory message = abi.encodeWithSelector(
+      MgdL2NFTEscrow.setReleaseKeyClearance.selector, expectedRedeemKey, true
+    );
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
@@ -446,8 +449,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _MEMOIR
     );
 
-    bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, expectedRedeemKey, true);
+    bytes memory message = abi.encodeWithSelector(
+      MgdL2NFTEscrow.setReleaseKeyClearance.selector, expectedRedeemKey, true
+    );
     uint256 nonce = CDMessenger(L2_CROSSDOMAIN_MESSENGER).messageNonce();
 
     vm.prank(Bob.addr);
@@ -481,13 +485,13 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, market1155Data, "", ""
     );
     vm.startPrank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeem721Key, true);
-    escrow.setRedeemClearanceKey(redeem1155Key, true);
+    escrow.setReleaseKeyClearance(redeem721Key, true);
+    escrow.setReleaseKeyClearance(redeem1155Key, true);
     vm.stopPrank();
-    uint256 key721 = escrow.getRedeemClearanceKey(
+    uint256 key721 = escrow.getReleaseKeyClearance(
       _721VId, address(nft721), _721tokenId, 1, Bob.addr, block1155Hash, market721Data, "", ""
     );
-    uint256 key1155 = escrow.getRedeemClearanceKey(
+    uint256 key1155 = escrow.getReleaseKeyClearance(
       _1155VId,
       address(nft1155),
       _1155tokenId,
@@ -516,13 +520,13 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     bytes memory signature721 = generate_packedSignature(digest721, MGDSigner.privateKey);
 
     vm.prank(Bob.addr);
-    escrow.setRedeemClearanceKeyWithSignature(Bob.addr, redeem721Key, true, deadline, signature721);
+    escrow.setReleaseKeyClearanceWithSignature(Bob.addr, redeem721Key, true, deadline, signature721);
 
     bytes32 digest1155 = escrow.getDigestToSign(Bob.addr, redeem1155Key, true, deadline);
     bytes memory signature1155 = generate_packedSignature(digest1155, MGDSigner.privateKey);
 
     vm.prank(Bob.addr);
-    escrow.setRedeemClearanceKeyWithSignature(
+    escrow.setReleaseKeyClearanceWithSignature(
       Bob.addr, redeem1155Key, true, deadline, signature1155
     );
 
@@ -537,7 +541,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
     vm.expectEmit(true, false, false, true, address(escrow));
     emit RedeemClearanceKey(redeemKey, true);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
   }
 
   function test_foeTriesToSetClearanceToRedeem(address foe) public {
@@ -552,9 +556,9 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     vm.startPrank(foe);
     vm.expectRevert(MgdL2NFTEscrow.MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed.selector);
-    escrow.setRedeemClearanceKey(redeem721Key, true);
+    escrow.setReleaseKeyClearance(redeem721Key, true);
     vm.expectRevert(MgdL2NFTEscrow.MgdL2NFTEscrow__onlyCrossAuthorized_notAllowed.selector);
-    escrow.setRedeemClearanceKey(redeem1155Key, true);
+    escrow.setReleaseKeyClearance(redeem1155Key, true);
     vm.stopPrank();
   }
 
@@ -563,7 +567,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     (uint256 redeemKey, bytes32 blockHash) =
       generate_L1ReleaseKey(_721VId, address(nft721), _721tokenId, 1, Bob.addr, marketData, "", "");
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(Bob.addr, address(nft721), _721tokenId, 1, _721VId, redeemKey);
@@ -614,7 +618,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     uint256 newTokenId = nft721._tokenIds() + 1;
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(Bob.addr, address(nft721), newTokenId, 1, nativeVoucherIdFor721, redeemKey);
@@ -643,7 +647,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _1155VId, address(nft1155), _1155tokenId, _EDITIONS, Bob.addr, marketData, "", ""
     );
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(Bob.addr, address(nft1155), _1155tokenId, _EDITIONS, _1155VId, redeemKey);
@@ -690,7 +694,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _1155VId, address(nft1155), _1155tokenId, partialAmount, Bob.addr, marketData, "", ""
     );
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(
@@ -725,7 +729,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     uint256 newTokenId = nft1155._tokenIds() + 1;
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(
@@ -767,7 +771,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     uint256 newTokenId = nft1155._tokenIds() + 1;
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(
@@ -809,7 +813,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
     );
     uint256 newTokenId = nft1155._tokenIds() + 1;
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(
@@ -847,7 +851,7 @@ contract RedeemingVoucherTests is CommonSigners, BaseL2Constants, MgdTestConstan
       _MEMOIR
     );
     vm.prank(L1_CROSSDOMAIN_MESSENGER);
-    escrow.setRedeemClearanceKey(redeemKey, true);
+    escrow.setReleaseKeyClearance(redeemKey, true);
     vm.prank(Bob.addr);
     vm.expectEmit(true, true, true, true, address(escrow));
     emit ReleasedEscrow(
