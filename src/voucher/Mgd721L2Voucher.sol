@@ -157,13 +157,8 @@ contract Mgd721L2Voucher is MgdL2BaseVoucher, ERC721Permit, Almost721Upgradeable
     L1VoucherData memory voucherData = _voucherL1Data[voucherId];
     MgdL1MarketData memory marketData = _voucherMarketData[voucherId];
 
-    (redeemData.releaseKey, redeemData.blockHash) = _generateL1RedeemKey(
-      voucherId,
-      voucherData.nft,
-      voucherData.tokenId,
-      voucherData.representedAmount,
-      receiver,
-      marketData
+    (redeemData.releaseKey, redeemData.blockHash) = _generateL1ReleaseKey(
+      voucherId, voucherData.nft, voucherData.tokenId, redeemData.amount, receiver, marketData
     );
     _emitRedeemVoucher(redeemData, marketData);
     _burnVoucherAndClearData(voucherId);

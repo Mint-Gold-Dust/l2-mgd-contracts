@@ -257,7 +257,7 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
 
   function _sendRedeemNoticeToL1(uint256 key) internal {
     bytes memory message =
-      abi.encodeWithSelector(MgdL2NFTEscrow.setRedeemClearanceKey.selector, key, true);
+      abi.encodeWithSelector(MgdL2NFTEscrow.setReleaseKeyClearance.selector, key, true);
     messenger.sendMessage(escrowL1, message, 1000000);
   }
 
@@ -285,12 +285,12 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
     identifier = uint256(keccak256(abi.encode(blockhash(block.number - 1), tokenData)));
   }
 
-  function _generateL1RedeemKey(
+  function _generateL1ReleaseKey(
     uint256 voucherId,
     address nft,
     uint256 tokenId,
     uint256 amount,
-    address owner,
+    address receiver,
     MgdL1MarketData memory marketData
   )
     internal
@@ -303,12 +303,14 @@ abstract contract MgdL2BaseVoucher is MgdL2BaseNFT {
         keccak256(abi.encode(_tokenURIs[voucherId], _tokenIdMemoir[voucherId]));
       key = uint256(
         keccak256(
-          abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData, hashedUriMemoir)
+          abi.encode(
+            voucherId, nft, tokenId, amount, receiver, blockHash, marketData, hashedUriMemoir
+          )
         )
       );
     } else {
       key = uint256(
-        keccak256(abi.encode(voucherId, nft, tokenId, amount, owner, blockHash, marketData))
+        keccak256(abi.encode(voucherId, nft, tokenId, amount, receiver, blockHash, marketData))
       );
     }
   }

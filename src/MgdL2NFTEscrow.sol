@@ -33,7 +33,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     uint256 indexed voucherId
   );
 
-  /// @dev Emit when `setRedeemClearanceKey()` is called.
+  /// @dev Emit when `setReleaseKeyClearance()` is called.
   event RedeemClearanceKey(uint256 indexed key, bool state);
 
   /// @dev Emit when NFT is released from escrow.
@@ -59,6 +59,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   error MgdL2NFTEscrow__createAndReleaseFromEscrow_wrongInputs();
   error MgdL2NFTEscrow__setVoucherL2_notAllowed();
   error MgdL2NFTEscrow__setVoucherL2_invalidSignature();
+  error MgdL2NFTEscrow___setRedeemClearance_burnedReleaseKey();
 
   bytes4 private constant _EMPTY_BYTES4 = 0x00000000;
   uint256 private constant _REF_NUMBER =
@@ -75,12 +76,15 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   address public voucher721L2;
   address public voucher1155L2;
 
+  mapping(uint256 => bool) public burnedReleaseKey;
+  mapping(uint256 => uint256) public recordedVoucherIdToTokenIds;
+
   /**
    * ///@dev This empty reserved space is put in place to allow future versions to add new
    * ///variables without shifting down storage in the inheritance chain.
    * ///See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
    */
-  uint256[50] private __gap;
+  uint256[48] private __gap;
 
   modifier onlyCrossAuthorized() {
     if (msg.sender != address(messenger) && msg.sender != address(_mgdCompany)) {
@@ -131,14 +135,14 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   }
 
   ///@notice Called by authorized cross domain messenger to clear release of escrowed NFT.
-  function setRedeemClearanceKey(uint256 key, bool state) external onlyCrossAuthorized {
+  function setReleaseKeyClearance(uint256 key, bool state) external onlyCrossAuthorized {
     _setRedeemClearance(key, state);
   }
 
   /**
    * @notice Set redeem clearance with an authorized signature
    */
-  function setRedeemClearanceKeyWithSignature(
+  function setReleaseKeyClearanceWithSignature(
     address receiver,
     uint256 key,
     bool state,
@@ -168,7 +172,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   /// @param receiver who will receive nft
   /// @param blockHash of tx in L2 where {MgdL2NFTVoucher.redeemVoucherToL1(...)} was called
   /// @param marketData status of voucher when redeem call was initiated in L2
-  function getRedeemClearanceKey(
+  function getReleaseKeyClearance(
     uint256 voucherId,
     address nft,
     uint256 tokenId,
@@ -183,7 +187,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     pure
     returns (uint256)
   {
-    return _generateL1RedeemKey(
+    return _generateL1ReleaseKey(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, tokenIdMemoir
     );
   }
@@ -212,7 +216,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   )
     external
   {
-    uint256 key = getRedeemClearanceKey(
+    uint256 key = getReleaseKeyClearance(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, memoir
     );
     _releaseFromEscrow(key, voucherId, receiver, nft, tokenId, amount, marketData, tokenURI, memoir);
@@ -234,10 +238,10 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   )
     external
   {
-    uint256 key = getRedeemClearanceKey(
+    uint256 key = getReleaseKeyClearance(
       voucherId, nft, tokenId, amount, receiver, blockHash, marketData, tokenURI, memoir
     );
-    setRedeemClearanceKeyWithSignature(receiver, key, true, deadline, signature);
+    setReleaseKeyClearanceWithSignature(receiver, key, true, deadline, signature);
     _releaseFromEscrow(key, voucherId, receiver, nft, tokenId, amount, marketData, tokenURI, memoir);
   }
 
@@ -340,11 +344,21 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     if (!redeemClearance[key]) {
       revert MgdL2NFTEscrow__releaseFromEscrow_notClearedOrAlreadyReleased();
     }
+    _setRedeemClearance(key, false);
+    burnedReleaseKey[key] = true;
+
     uint256 newTokenId;
     if (tokenId == _REF_NUMBER) {
       require(bytes(tokenURI).length > 0, "pass tokenURI");
-      newTokenId =
-        IEscrowableNFT(nft).mintFromL2Native(receiver, amount, marketData, tokenURI, memoir);
+      uint256 recordedId = recordedVoucherIdToTokenIds[voucherId];
+      if (recordedId == 0) {
+        newTokenId =
+          IEscrowableNFT(nft).mintFromL2Native(receiver, amount, marketData, tokenURI, memoir);
+        recordedVoucherIdToTokenIds[voucherId] = newTokenId;
+      } else {
+        IEscrowableNFT(nft).mintFromL2NativeRecorded(receiver, amount, recordedId, marketData);
+        newTokenId = recordedId;
+      }
     }
     if (newTokenId == 0) {
       IEscrowableNFT(nft).transfer(address(this), receiver, tokenId, amount);
@@ -391,7 +405,7 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
     voucherId = uint256(keccak256(abi.encode(nft, tokenId, amount, owner, blockHash, marketData)));
   }
 
-  function _generateL1RedeemKey(
+  function _generateL1ReleaseKey(
     uint256 voucherId,
     address nft,
     uint256 tokenId,
@@ -456,6 +470,9 @@ contract MgdL2NFTEscrow is Initializable, IERC721Receiver, IERC1155Receiver, Mgd
   }
 
   function _setRedeemClearance(uint256 key, bool state) private {
+    if (burnedReleaseKey[key]) {
+      revert MgdL2NFTEscrow___setRedeemClearance_burnedReleaseKey();
+    }
     redeemClearance[key] = state;
     emit RedeemClearanceKey(key, state);
   }

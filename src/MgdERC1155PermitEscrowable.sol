@@ -181,6 +181,22 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     emit EscrowUpdateMarketData(newTokenId, marketData);
   }
 
+  function mintFromL2NativeRecorded(
+    address receiver,
+    uint256 amount,
+    uint256 recordedTokenId,
+    MgdL1MarketData calldata marketData
+  )
+    external
+  {
+    if (msg.sender != escrow) {
+      revert MgdERC1155PermitEscrowable__onlyEscrow_notAllowed();
+    }
+    _mint(receiver, recordedTokenId, amount, "");
+    _primarySaleQuantityToSell[recordedTokenId] += marketData.primarySaleL2QuantityToSell;
+    emit EscrowUpdateMarketData(recordedTokenId, marketData);
+  }
+
   function updateMarketData(uint256 tokenId, MgdL1MarketData calldata marketData) external {
     if (msg.sender != escrow) {
       revert MgdERC1155PermitEscrowable__onlyEscrow_notAllowed();

@@ -54,7 +54,7 @@ contract Helpers is Test {
     (marketData) = abi.decode(tokenIdData, (MgdL1MarketData));
   }
 
-  function generate_L1RedeemKey(
+  function generate_L1ReleaseKey(
     uint256 voucherId,
     address nft,
     uint256 tokenId,

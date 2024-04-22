@@ -19,4 +19,12 @@ interface IEscrowableNFT {
   )
     external
     returns (uint256 newTokenId);
+
+  function mintFromL2NativeRecorded(
+    address receiver,
+    uint256 amount,
+    uint256 recordedTokenId,
+    MgdL1MarketData calldata marketData
+  )
+    external;
 }

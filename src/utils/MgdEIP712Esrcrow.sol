@@ -13,7 +13,7 @@ contract MgdEIP712Esrcrow {
     "MgdEIP712Esrcrow(string name,string version,uint256 chainid,address verifyingContract)"
   );
   bytes32 internal constant _SETCLEARANCE_TYPEHASH = keccak256(
-    "SetRedeemClearanceKey(address receiver,uint256 key,bool state,uint256 nonce,uint256 deadline)"
+    "setReleaseKeyClearance(address receiver,uint256 key,bool state,uint256 nonce,uint256 deadline)"
   );
 
   /// Storage
