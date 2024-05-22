@@ -189,43 +189,4 @@ contract VoucherTests is CommonSigners, BaseL2Constants, MgdTestConstants {
     );
     assertEq(l2voucher1155.balanceOf(Bob.addr, vId), _EDITIONS);
   }
-
-  function test_collectorMintingMethodsReverts() public {
-    // l2voucher.collectorMint
-    vm.prank(Bob.addr);
-    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
-    l2voucher721.collectorMint(
-      _TOKEN_URI, _ROYALTY_PERCENT, 1, Bob.addr, bytes(_MEMOIR), 1234, address(this)
-    );
-
-    vm.prank(Bob.addr);
-    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
-    l2voucher1155.collectorMint(
-      _TOKEN_URI, _ROYALTY_PERCENT, 1, Bob.addr, bytes(_MEMOIR), 1234, address(this)
-    );
-
-    // l2voucher.collectorSplitMint
-    address[] memory collabs = new address[](2);
-    collabs[0] = Charlie.addr;
-    collabs[1] = David.addr;
-
-    uint256[] memory collabsPercent = new uint256[](3);
-    collabsPercent[0] = 35e18;
-    collabsPercent[1] = 20e18;
-    collabsPercent[2] = 45e18;
-
-    vm.prank(Bob.addr);
-    vm.expectRevert(MgdL2BaseNFT.MgdL2Voucher__collectorMint_disabledInL2.selector);
-    l2voucher1155.collectorSplitMint(
-      _TOKEN_URI,
-      _ROYALTY_PERCENT,
-      collabs,
-      collabsPercent,
-      1,
-      Bob.addr,
-      bytes(_MEMOIR),
-      1234,
-      address(this)
-    );
-  }
 }
