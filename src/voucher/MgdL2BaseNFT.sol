@@ -142,7 +142,7 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
    * @notice Getter required by the MGD Marketplace contracts.
    * @param id the id of the voucher
    */
-  function tokenIdRoyaltyPercentage(uint256 id) external view returns (uint256) {
+  function tokenIdRoyaltyPercent(uint256 id) external view returns (uint256) {
     return _voucherMarketData[id].royaltyPercent;
   }
 
