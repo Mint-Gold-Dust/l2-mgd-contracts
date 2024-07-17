@@ -76,6 +76,11 @@ contract MgdERC1155PermitEscrowable is MintGoldDustERC1155, ERC1155Permit {
     _safeTransferFrom(from, to, id, amount, data);
   }
 
+  /// @notice returns name of contract
+  function name() public pure returns (string memory) {
+    return "Mint Gold Dust NFT";
+  }
+
   /// @inheritdoc ERC1155Allowance
   function allowance(
     address owner,
