@@ -42,7 +42,6 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
   error MgdL2Voucher__notAuthorized(string restriction);
   error MgdL2Voucher__checkRoyalty_moreThanMax();
   error MgdL2Voucher__splitMint_invalidArray();
-  error MgdL2Voucher__collectorMint_disabledInL2();
 
   MgdCompanyL2Sync internal _mgdCompany;
   address internal _mintGoldDustSetPrice;
@@ -143,8 +142,12 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
    * @notice Getter required by the MGD Marketplace contracts.
    * @param id the id of the voucher
    */
-  function tokenIdRoyaltyPercentage(uint256 id) external view returns (uint256) {
+  function tokenIdRoyaltyPercent(uint256 id) external view returns (uint256) {
     return _voucherMarketData[id].royaltyPercent;
+  }
+
+  function tokenIdCollaboratorsQuantity(uint256 id) external view returns (uint256) {
+    return uint256(_voucherMarketData[id].collabsQuantity);
   }
 
   function getVoucherMarketData(uint256 id) public view returns (MgdL1MarketData memory) {
@@ -196,46 +199,6 @@ abstract contract MgdL2BaseNFT is Initializable, PausableUpgradeable, Reentrancy
     public
     virtual
     returns (uint256);
-
-  /// @notice Collector mint is disabled in MGD L2 contracts.
-  /// @dev  Kept this function to throw error message when called
-  /// by other MGD v2-core unchanged contracts.
-  function collectorMint(
-    string memory,
-    uint256,
-    uint256,
-    address,
-    bytes memory,
-    uint256,
-    address
-  )
-    external
-    pure
-    returns (uint256)
-  {
-    revert MgdL2Voucher__collectorMint_disabledInL2();
-  }
-
-  /// @notice Collector split mint is disabled in MGD L2 contracts.
-  /// @dev  Kept this function to throw error message when called
-  /// by other MGD v2-core unchanged contracts.
-  function collectorSplitMint(
-    string memory,
-    uint256,
-    address[] memory,
-    uint256[] memory,
-    uint256,
-    address,
-    bytes memory,
-    uint256,
-    address
-  )
-    external
-    pure
-    returns (uint256)
-  {
-    revert MgdL2Voucher__collectorMint_disabledInL2();
-  }
 
   /// @notice Reduces the quantity of remaining items available for primary sale for a specific token.
   ///         Only executes the update if there is a non-zero quantity of the token remaining for primary sale.
